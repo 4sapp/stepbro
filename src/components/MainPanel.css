@@ -1,0 +1,22 @@
+.main-panel {
+  /* 1440 × 810 sobre una pantalla de 1920 × 1080, como la referencia. */
+  --panel-width: 90rem;
+  --panel-radius: clamp(1.25rem, 1.5vw, 1.75rem);
+
+  display: grid;
+  align-content: center;
+
+  inline-size: min(100%, var(--panel-width));
+  min-block-size: 75svh;
+  padding-inline: clamp(1rem, 13.25vw, 16rem);
+  border-radius: var(--panel-radius);
+  /* Delimita el panel incluso en la zona más clara del degradado. */
+  border: 1px solid rgb(30 30 30 / 7%);
+  background: #fff;
+}
+
+@media (max-width: 40rem) {
+  .main-panel {
+    padding-inline: 0;
+  }
+}
