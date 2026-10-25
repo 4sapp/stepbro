@@ -1,0 +1,15 @@
+/* Base global: evita márgenes y mantiene un tamaño predecible. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}

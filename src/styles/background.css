@@ -1,0 +1,43 @@
+/* Paso 1: fondo. Estas variables son los primeros valores a ajustar. */
+:root {
+  /* Un blanco ligeramente gris permite distinguir el panel blanco. */
+  --background-base: #f3f3f2;
+  --background-coral: #ff6559;
+  --background-peach: #ff9678;
+}
+
+.app-background {
+  display: grid;
+  place-items: center;
+
+  min-height: 100vh;
+  min-height: 100svh;
+
+  /* El margen crece con la pantalla: 12.5% a cada lado en escritorio. */
+  padding-block: 6.25svh;
+  padding-inline: clamp(1rem, 12.5vw, 15rem);
+
+  background-color: var(--background-base);
+
+  /*
+   * Las capas se dibujan de arriba hacia abajo.
+   * La capa blanca conserva el lado izquierdo claro.
+   * Cambia 32% y 79% para controlar dónde aparece el color.
+   */
+  background-image:
+    linear-gradient(
+      to right,
+      var(--background-base) 32%,
+      transparent 79%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      var(--background-coral) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse at 100% 0%,
+      var(--background-peach) 0%,
+      transparent 70%
+    );
+}
