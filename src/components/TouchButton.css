@@ -8,7 +8,7 @@
   padding: 0.875rem 1.25rem;
   border: 0;
   border-radius: 1.75rem;
-  background: #30302f;
+  background: var(--theme-strong);
   color: #fff;
   font: inherit;
   line-height: 1.5rem;
@@ -48,11 +48,30 @@
 }
 
 @keyframes touch-ripple {
-  from { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-  to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .touch-button { transition: none; }
-  .touch-button__ripple { animation-duration: 1ms; }
+  .touch-button {
+    transition: none;
+  }
+  .touch-button__ripple {
+    animation-duration: 1ms;
+  }
+}
+
+.touch-button--icon-only {
+  flex-shrink: 0;
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  min-block-size: 0;
+  padding: 0;
+  border-radius: 50%;
 }

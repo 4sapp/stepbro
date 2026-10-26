@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import './TouchButton.css'
 
-defineProps({ label: { type: String, required: true } })
+defineProps({ label: { type: String, required: true }, iconOnly: Boolean })
 const button = ref(null)
 const ripples = ref([])
 let rippleId = 0
@@ -20,7 +20,7 @@ function ripple(event) {
 </script>
 
 <template>
-  <button ref="button" class="touch-button" type="button" @pointerdown="ripple">
+  <button ref="button" class="touch-button" :class="{ 'touch-button--icon-only': iconOnly }" :aria-label="iconOnly ? label : undefined" type="button" @pointerdown="ripple">
     <span class="touch-button__ripples" aria-hidden="true">
       <span
         v-for="drop in ripples"
@@ -31,6 +31,6 @@ function ripple(event) {
       />
     </span>
     <span class="touch-button__icon" data-shared-item="icon" aria-hidden="true">+</span>
-    <span data-shared-item="title">{{ label }}</span>
+    <span :class="{ 'visually-hidden': iconOnly }" data-shared-item="title">{{ label }}</span>
   </button>
 </template>

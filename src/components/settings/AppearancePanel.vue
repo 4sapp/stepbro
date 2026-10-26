@@ -1,29 +1,12 @@
 <script setup>
-import { ref } from 'vue'
 import { useSettingsDialog } from '../../composables/useSettingsDialog'
 import './AppearancePanel.css'
+import { useAppearanceTheme } from '../../composables/useAppearanceTheme'
+import { useNavigationLayout } from '../../composables/useNavigationLayout'
+const { desktop, desktopChoices } = useNavigationLayout()
 
 const { dialog, open, close, backdrop, drag } = useSettingsDialog({ anchored: true })
-const selected = ref('neutral')
-// Paleta independiente del resto de componentes. Sustituible por tus tokens.
-const colors = [
-  { id: 'neutral', label: 'Neutro', value: '#bcbcbc' },
-  { id: 'black', label: 'Negro', value: '#151515' },
-  { id: 'red', label: 'Rojo', value: '#ef4545' },
-  { id: 'orange', label: 'Naranja', value: '#ff982f' },
-  { id: 'green', label: 'Verde', value: '#0bec7b' },
-  { id: 'blue', label: 'Azul', value: '#0d74fa' },
-  { id: 'indigo', label: 'Índigo', value: '#4e57f4' },
-  { id: 'purple', label: 'Violeta', value: '#8b16f0' },
-  { id: 'magenta', label: 'Magenta', value: '#d211e5' },
-  { id: 'pink', label: 'Rosa', value: '#d785ba' },
-]
-
-function select(color) {
-  selected.value = color.id
-  document.documentElement.style.setProperty('--sidebar-active', color.id === 'neutral'
-    ? '#e3e1e5' : `color-mix(in srgb, ${color.value} 22%, #f4f2f7)`)
-}
+const { selected, colors, select } = useAppearanceTheme()
 
 defineExpose({ open })
 </script>
@@ -36,18 +19,18 @@ defineExpose({ open })
         <h2 id="appearance-title">Apariencia</h2>
         <button class="appearance-panel__close" type="button" aria-label="Cerrar apariencia" @click="close">×</button>
       </header>
-      <div class="appearance-panel__palette" role="group" aria-label="Color de acento">
+      <div class="appearance-panel__palette" data-no-drag role="group" aria-label="Color de acento">
         <button v-for="color in colors" :key="color.id" class="appearance-panel__swatch" :class="{ 'appearance-panel__swatch--black': color.id === 'black' }" type="button" :style="{ '--swatch': color.value }" :aria-label="color.label" :aria-pressed="selected === color.id" @click="select(color)" />
       </div>
-      <fieldset class="appearance-panel__navigation">
-        <legend>Navegación</legend>
-        <!-- Las otras distribuciones se implementarán en sus propios pasos. -->
-        <button type="button" aria-pressed="true">Clásica</button>
-        <button type="button" disabled>Bonita</button>
-        <button type="button" disabled>Guapa</button>
-        <button type="button" disabled>Tasks</button>
-        <button type="button" disabled>Melon</button>
+      <fieldset class="appearance-panel__navigation appearance-panel__navigation--desktop" data-no-drag>
+        <legend>Navegación en PC</legend>
+        <label v-for="layout in desktopChoices" :key="layout.id" class="navigation-choice" :title="layout.detail">
+          <input v-model="desktop" type="radio" name="desktop-navigation" :value="layout.id" />
+          <span class="navigation-choice__preview" :class="`navigation-choice__preview--${layout.id}`" aria-hidden="true"><i /><i /><i /></span>
+          <span>{{ layout.label }}</span>
+        </label>
       </fieldset>
+
       </div>
     </dialog>
   </Teleport>

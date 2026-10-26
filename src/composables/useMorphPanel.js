@@ -15,6 +15,7 @@ export function useMorphPanel() {
   const phase = ref('closed')
   let timeline
   let trigger
+  let lastOrigin
   let previousOverflow
   let surface
   let reduced = false
@@ -29,7 +30,7 @@ export function useMorphPanel() {
     }
     timeline.kill()
     const panel = dialog.value
-    const origin = trigger.getBoundingClientRect()
+    const origin = trigger.isConnected ? trigger.getBoundingClientRect() : lastOrigin
     const box = panel.getBoundingClientRect()
     const layout = panel.querySelector('[data-panel-layout]')
     // El panel puede venir de un gesto: parte de su posición visual actual.
@@ -70,6 +71,7 @@ export function useMorphPanel() {
     phase.value = 'opening'
     trigger = event.currentTarget
     const start = trigger.getBoundingClientRect()
+    lastOrigin = start
 
     panel.showModal()
     previousOverflow = document.body.style.overflow
@@ -78,7 +80,7 @@ export function useMorphPanel() {
     surface = panel.querySelector('[data-panel-surface]')
     const shared = [...panel.querySelectorAll('[data-shared-item]')].flatMap(target => {
       const source = trigger.querySelector(`[data-shared-item="${target.dataset.sharedItem}"]`)
-      if (!source) return []
+      if (!source || source.classList.contains('visually-hidden')) return []
       return [{ target, sourceBox: source.getBoundingClientRect(), targetBox: target.getBoundingClientRect() }]
     })
     trigger.style.visibility = 'hidden'
@@ -87,7 +89,14 @@ export function useMorphPanel() {
     // Duración y curva compartidas: ajusta aquí el carácter del movimiento.
     timeline = gsap.timeline({
       defaults: { duration: reduced ? 0 : motion.duration, ease: popoverEase },
-      onComplete: () => { phase.value = 'open' },
+      onComplete: () => {
+        phase.value = 'open'
+        // La superficie vuelve a seguir la altura natural del formulario.
+        // También elimina capas de filtro que deforman el scroll nativo.
+        gsap.set(surface, { clearProps: 'all' })
+        gsap.set(panel.querySelector('[data-panel-layout]'), { clearProps: 'filter' })
+        gsap.set(panel.querySelectorAll('[data-shared-item]'), { clearProps: 'transform' })
+      },
     })
 
     // El diálogo mantiene su geometría. Solo la superficie cambia de tamaño.
@@ -104,7 +113,7 @@ export function useMorphPanel() {
       width: end.width,
       height: end.height,
       borderRadius: getComputedStyle(panel).borderRadius,
-      backgroundColor: '#fff',
+      backgroundColor: getComputedStyle(surface).backgroundColor,
     }, 0)
 
     timeline.fromTo(panel, {

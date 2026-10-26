@@ -1,24 +1,13 @@
 .main-panel {
-  /* Ancho de la barra lateral y del escritorio completo. */
-  --panel-width: 100rem;
-  --sidebar-width: 15rem;
-  --panel-radius: 1.25rem;
-
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-
-  inline-size: min(100%, var(--panel-width));
-  min-block-size: calc(100svh - 4rem);
-  overflow: clip;
-  border-radius: var(--panel-radius);
-  /* Delimita el panel incluso en la zona más clara del degradado. */
-  border: 1px solid rgb(30 30 30 / 7%);
-  background: #fff;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  align-items: start;
+  inline-size: 100%;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  background: var(--theme-page);
+  border-radius: 0;
 }
-
 @media (max-width: 40rem) {
-  .main-panel {
-    position: relative;
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-  }
+  .main-panel { display: block; min-block-size: 100svh; border-radius: 0; }
 }

@@ -1,7 +1,8 @@
-import { onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useDragDismiss } from './useDragDismiss'
+import { useNavigationLayout } from './useNavigationLayout'
 import { popoverEase, fadeEase, blurEase } from './motionProfiles'
 
 gsap.registerPlugin(Flip)
@@ -10,6 +11,11 @@ export function useOriginPopover() {
   const trigger = ref(null)
   const panel = ref(null)
   const expanded = ref(false)
+  const { desktop, mobile: mobileLayout } = useNavigationLayout()
+  watch([desktop, mobileLayout], async () => {
+    await nextTick()
+    if (expanded.value && !closing) placePanel()
+  })
   let timeline
   let wordGhost
   let closing = false
@@ -19,13 +25,49 @@ export function useOriginPopover() {
   const title = () => panel.value.querySelector('[data-origin-title]')
   const layout = () => panel.value.querySelector('.options-menu__layout')
   const surface = () => panel.value.querySelector('[data-origin-surface]')
+  // GSAP conserva la unidad inicial: un botón al 50% debe convertirse a px
+  // antes de animarse hacia las esquinas del panel.
+  function triggerRadius() {
+    const value = getComputedStyle(trigger.value).borderTopLeftRadius
+    const box = trigger.value.getBoundingClientRect()
+    return `${value.includes('%') ? parseFloat(value) * Math.min(box.width, box.height) / 100 : parseFloat(value) || 0}px`
+  }
   const drag = useDragDismiss({ target: panel, canDrag: () => ready && !closing && !document.querySelector('dialog[open]'), dismiss: close })
+
+  function placePanel() {
+    const origin = trigger.value.getBoundingClientRect()
+    const mobile = innerWidth <= 640
+    const docked = desktop.value === 'dock'
+    const sidebar = trigger.value.closest('.dashboard-sidebar').getBoundingClientRect()
+    // En la clásica el menú se mantiene dentro de su barra lateral.
+    const width = !mobile && desktop.value === 'classic'
+      ? Math.min(240, sidebar.width - 24) : Math.min(240, innerWidth - 24)
+    const bottom = Math.min(innerHeight - 12, origin.bottom + 8)
+    const maxHeight = Math.max(48, bottom - 12)
+    panel.value.style.setProperty('--options-max-height', `${maxHeight}px`)
+    panel.value.style.width = `${width}px`
+    const height = panel.value.offsetHeight
+    const left = Math.max(12, Math.min(
+      mobile || docked ? origin.right + 8 - width : origin.left - 8,
+      innerWidth - width - 12,
+    ))
+    const top = Math.max(12, bottom - height)
+    gsap.set(panel.value, { left, top })
+    return { origin, width, height, left, top }
+  }
 
   function restoreWord() {
     wordGhost?.remove()
     wordGhost = null
     label().style.visibility = ''
     title().style.visibility = ''
+  }
+
+  function visibleTriggerLabel() {
+    const node = label()
+    const box = node.getBoundingClientRect()
+    const style = getComputedStyle(node)
+    return style.display !== 'none' && style.clipPath === 'none' && box.width > 1 && box.height > 1
   }
 
   // Cada dirección utiliza el estilo de su DESTINO: encabezado al abrir y
@@ -66,6 +108,7 @@ export function useOriginPopover() {
     restoreWord()
     panel.value.hidePopover()
     gsap.set([panel.value, surface(), layout()], { clearProps: 'all' })
+    gsap.set(trigger.value, { clearProps: 'opacity' })
     expanded.value = false
     closing = false
     ready = false
@@ -79,7 +122,8 @@ export function useOriginPopover() {
     timeline?.kill()
     if (reduced()) { finishClose(); return }
     // Captura primero, incluso si la apertura o el gesto están a medio camino.
-    const word = prepareWord(wordGhost || title(), label())
+    const word = visibleTriggerLabel() ? prepareWord(wordGhost || title(), label()) : null
+    if (!word) restoreWord()
     const surfaceState = Flip.getState(surface())
     const contentState = Flip.getState(layout())
     gsap.set(panel.value, { x: 0, y: 0, scale: 1 })
@@ -95,13 +139,13 @@ export function useOriginPopover() {
     })
     timeline = gsap.timeline()
     timeline.add(Flip.from(surfaceState, { targets: surface(), duration: 0.5, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(surface(), { borderRadius: getComputedStyle(trigger.value).borderRadius, duration: 0.5, ease: popoverEase }, 0)
+    timeline.to(surface(), { borderRadius: triggerRadius(), duration: 0.5, ease: popoverEase }, 0)
     timeline.add(Flip.from(contentState, { targets: layout(), duration: 2, scale: true, absolute: true, ease: popoverEase }), 0)
-    timeline.to(layout(), { borderRadius: 400, opacity: 0, duration: 0.5, ease: fadeEase }, 0)
+    timeline.to(layout(), { borderRadius: '400px', opacity: 0, duration: 0.5, ease: fadeEase }, 0)
     timeline.to(layout(), { filter: 'blur(32px)', duration: 0.5, ease: blurEase }, 0)
     // Igual que ModalHost de sb Tasks: el clon del DESTINO vuelve desde
     // el estado del encabezado en una sola transición, sin offsets añadidos.
-    timeline.add(Flip.from(word.state, {
+    if (word) timeline.add(Flip.from(word.state, {
       targets: word.ghost, duration: 0.5,
       scale: true, absolute: true, ease: popoverEase,
     }), 0)
@@ -110,6 +154,7 @@ export function useOriginPopover() {
       duration: 0.5, ease: popoverEase,
     }, 0)
     timeline.to(surface(), { opacity: 0, duration: 0.5, ease: 'power3.in' }, 0)
+    timeline.to(trigger.value, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.2)
     timeline.call(finishClose, [], 0.5)
   }
 
@@ -117,27 +162,25 @@ export function useOriginPopover() {
     if (expanded.value) { close(); return }
     panel.value.showPopover()
     expanded.value = true
-    const origin = trigger.value.getBoundingClientRect()
-    const width = panel.value.offsetWidth
-    const height = panel.value.offsetHeight
-    const left = Math.max(12, Math.min(origin.left - 8, innerWidth - width - 12))
-    const top = Math.max(12, innerHeight - height - 16)
-    gsap.set(panel.value, { left, top })
+    const { origin, width, height, left, top } = placePanel()
     gsap.set(title(), { width: 'max-content' })
-    const word = prepareWord(label(), title())
-    gsap.set(surface(), { x: origin.left - left, y: origin.top - top, width: origin.width, height: origin.height, borderRadius: getComputedStyle(trigger.value).borderRadius })
+    // Un botón de solo icono no tiene texto visible al que hacer morph.
+    // El título entra y sale con el contenido, sin usar la etiqueta de 1 px.
+    const word = visibleTriggerLabel() ? prepareWord(label(), title()) : null
+    gsap.set(surface(), { x: origin.left - left, y: origin.top - top, width: origin.width, height: origin.height, borderRadius: triggerRadius() })
     gsap.set(layout(), { x: origin.left - left, y: origin.top - top, scaleX: origin.width / width, scaleY: origin.height / height })
     const surfaceState = Flip.getState(surface())
     const contentState = Flip.getState(layout())
     gsap.set(surface(), { x: 0, y: 0, width, height })
     gsap.set(layout(), { x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const duration = reduced() ? 0 : 0.7
-    timeline = gsap.timeline({ onComplete: () => { restoreWord(); ready = true } })
+    timeline = gsap.timeline({ onComplete: () => { restoreWord(); gsap.set(surface(), { clearProps: 'borderRadius' }); ready = true } })
+    timeline.to(trigger.value, { opacity: 0, duration: reduced() ? 0 : 0.08 }, 0)
     timeline.add(Flip.from(surfaceState, { targets: surface(), duration, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(surface(), { borderRadius: 32, duration: reduced() ? 0 : 0.3, ease: popoverEase }, 0)
+    timeline.to(surface(), { borderRadius: '32px', duration: reduced() ? 0 : 0.3, ease: popoverEase }, 0)
     timeline.add(Flip.from(contentState, { targets: layout(), duration, scale: true, absolute: false, ease: popoverEase }), 0)
     timeline.fromTo(layout(), { opacity: 0, filter: reduced() ? 'none' : 'blur(8px)' }, { opacity: 1, filter: 'blur(0px)', duration, ease: popoverEase }, 0)
-    timeline.add(Flip.from(word.state, { targets: word.ghost, duration, scale: true, absolute: true, ease: popoverEase }), 0)
+    if (word) timeline.add(Flip.from(word.state, { targets: word.ghost, duration, scale: true, absolute: true, ease: popoverEase }), 0)
   }
 
   function outside(event) {
@@ -153,7 +196,7 @@ export function useOriginPopover() {
   onBeforeUnmount(() => {
     timeline?.kill()
     wordGhost?.remove()
-    if (trigger.value) label().style.visibility = ''
+    if (trigger.value) { label().style.visibility = ''; gsap.set(trigger.value, { clearProps: 'opacity' }) }
     document.removeEventListener('pointerdown', outside)
     document.removeEventListener('keydown', escape)
     if (panel.value?.matches(':popover-open')) panel.value.hidePopover()

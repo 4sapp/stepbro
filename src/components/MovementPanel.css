@@ -7,112 +7,299 @@
 .movement-panel {
   position: fixed;
   inset: 0;
-  inline-size: min(28rem, calc(100vw - 2rem));
-  block-size: 18rem;
-  max-block-size: calc(100svh - 2rem);
+  inline-size: min(30rem, calc(100vw - 2rem));
+  block-size: fit-content;
+  max-block-size: calc(100svh - 3rem);
   margin: auto;
   padding: 0;
-  overflow: visible;
   border: 0;
-  border-radius: 1.75rem;
+  border-radius: 2rem;
+  overflow: visible;
   background: transparent;
-  color: #222;
+  color: #332d39;
   font-family: inherit;
 }
 
 .movement-panel::backdrop {
-  background: rgb(30 25 23 / var(--backdrop-opacity, 0));
+  background: rgb(30 25 35 / var(--backdrop-opacity, 0));
 }
 
 .movement-panel__surface {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: #fff;
+  background: var(--theme-surface-raised);
   pointer-events: none;
 }
 
 .movement-panel__layout {
   position: relative;
-  min-block-size: 100%;
-  /* El cuerpo participa en el gesto; data-no-drag excluye controles especiales. */
-  touch-action: none;
+  min-inline-size: 0;
   user-select: none;
-  cursor: grab;
-}
-
-.movement-panel__layout[data-dragging] {
-  cursor: grabbing;
 }
 
 .movement-panel__header {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  min-block-size: 5.25rem;
-  white-space: nowrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  touch-action: none;
+  cursor: grab;
 }
 
-.movement-panel__grip {
-  position: absolute;
-  inset-block-start: 0.5rem;
-  inset-inline-start: calc(50% - 1rem);
-  inline-size: 2rem;
-  block-size: 0.2rem;
-  border-radius: 1rem;
-  background: rgb(0 0 0 / 12%);
-  pointer-events: none;
-}
-
-.movement-panel__hint {
-  margin-block-start: 1.5rem;
-  font-size: 0.8125rem;
-  color: #898681;
+.movement-panel__layout[data-dragging] .movement-panel__header {
+  cursor: grabbing;
 }
 
 .movement-panel__header h2 {
-  flex-shrink: 0;
   margin: 0;
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5rem;
-}
-
-.movement-panel__icon {
-  flex-shrink: 0;
-  font-size: 1.5rem;
-  line-height: 1;
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.04em;
 }
 
 .movement-panel__close {
-  /* No participa en el ancho del título cuando la superficie se contrae. */
-  position: absolute;
-  inset-block-start: 1.25rem;
-  inset-inline-end: 1.25rem;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
-  margin-inline-start: auto;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  padding: 0;
   border: 0;
   border-radius: 50%;
-  background: #f3f3f2;
-  color: inherit;
-  font-size: 1.5rem;
+  background: var(--theme-surface);
+  color: var(--theme-muted);
+  font: inherit;
+  font-size: 1.35rem;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.movement-panel__close:focus-visible {
-  outline: 2px solid #d65c4e;
-  outline-offset: 2px;
+.movement-form {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+  min-inline-size: 0;
+  max-block-size: calc(100svh - 8.5rem);
+  padding: 0 1.5rem 1.5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #dcd5e2 transparent;
+  user-select: text;
+  cursor: auto;
 }
 
-.movement-panel__body {
-  padding: 0 1.25rem 1.25rem;
-  color: #73716f;
-  line-height: 1.5;
+.movement-form > label,
+.movement-form__row > label {
+  display: grid;
+  gap: 0.4rem;
+  min-inline-size: 0;
+  color: #8e8397;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.movement-form input:not([type='radio']),
+.movement-form select,
+.movement-form textarea {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 2.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--theme-outline);
+  border-radius: 0.9rem;
+  background: var(--theme-surface);
+  color: var(--theme-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  user-select: text;
+}
+
+.movement-form textarea {
+  resize: vertical;
+}
+
+.movement-form input::placeholder,
+.movement-form textarea::placeholder {
+  color: #afa4b6;
+}
+
+/* Tres opciones legibles, conservando radios accesibles para el teclado. */
+.movement-form__types {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.35fr);
+  min-inline-size: 0;
+  gap: 0.25rem;
+  margin: 0 0 0.25rem;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: 1rem;
+  background: #efecf3;
+}
+
+.movement-form__types label {
+  position: relative;
+  z-index: 1;
+  padding: 0.6rem 0.3rem;
+  border-radius: 0.8rem;
+  color: #9c8ea6;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.movement-form__types label.is-selected {
+  color: #504058;
+}
+
+.movement-form__types input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.movement-form__types label:has(input:focus-visible) {
+  outline: 2px solid #9f89ad;
+  outline-offset: 1px;
+}
+
+.movement-form__money {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--theme-outline);
+  border-radius: 0.9rem;
+  background: var(--theme-surface);
+}
+
+.movement-form .movement-form__money input {
+  border: 0;
+  background: transparent;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.movement-form__money > span {
+  flex-shrink: 0;
+  padding-inline-end: 0.9rem;
+  color: #a194aa;
+  font-size: 0.75rem;
+}
+
+.movement-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.movement-form__add-note {
+  justify-self: start;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: #92819d;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.movement-form .finance-fields__footer {
+  align-items: center;
+  flex-wrap: wrap;
+  margin-block-start: 0.25rem;
+}
+
+.movement-form .finance-fields__footer .movement-form__cancel {
+  background: var(--theme-hover);
+  color: #8e7d99;
+}
+
+.movement-form .finance-fields__footer .movement-form__save {
+  background: var(--theme-strong);
+  color: white;
+}
+
+.movement-form__error {
+  margin: 0;
+  color: #b04d3d;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 30rem) {
+  .movement-panel {
+    inline-size: calc(100vw - 1.5rem);
+    max-block-size: calc(100svh - 1.5rem);
+    border-radius: 1.75rem;
+  }
+
+  .movement-panel__header {
+    padding: 1.25rem 1.25rem 1rem;
+  }
+
+  .movement-panel__header h2 {
+    font-size: 1.15rem;
+  }
+
+  .movement-form .finance-fields__footer button {
+    padding-inline: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .movement-form {
+    max-block-size: calc(100svh - 6.5rem);
+    padding-inline: 1.25rem;
+    padding-block-end: 1.25rem;
+  }
+}
+
+/* El indicador viaja sin mover los textos de los tres tipos. */
+.movement-form__type-indicator {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  border-radius: 0.8rem;
+  background: var(--theme-surface-raised);
+  box-shadow: 0 1px 3px rgb(40 20 60 / 5%);
+  pointer-events: none;
+}
+
+/* Vue conserva las posiciones anteriores; los campos vecinos se recolocan
+   mientras la ventana acompaña el cambio de alto con GSAP. */
+.movement-fields-move,
+.movement-fields-enter-active,
+.movement-fields-leave-active {
+  transition: transform 420ms cubic-bezier(.22, .8, .22, 1), opacity 260ms ease, filter 260ms ease;
+}
+
+.movement-fields-enter-from,
+.movement-fields-leave-to {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translateY(8px);
+}
+
+.movement-fields-leave-active {
+  position: absolute;
+  inline-size: calc(100% - 3rem);
+  pointer-events: none;
+}
+
+@media (max-width: 30rem) {
+  .movement-fields-leave-active {
+    inline-size: calc(100% - 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .movement-fields-move,
+  .movement-fields-enter-active,
+  .movement-fields-leave-active {
+    transition: none;
+  }
 }

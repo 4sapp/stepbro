@@ -1,0 +1,37 @@
+.panel-divider {
+  position: relative;
+  align-self: stretch;
+  background: linear-gradient(to right, var(--theme-surface-raised) calc(100% - 1px), var(--sidebar-line) 0);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+/* La unión es discreta en reposo; el control aparece al usarla. */
+.panel-divider::after {
+  content: '';
+  position: absolute;
+  inset-block: 0.75rem;
+  inset-inline-start: 2px;
+  inline-size: 2px;
+  border-radius: 2px;
+  background: #c6b9d0;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.panel-divider:hover::after,
+.panel-divider:focus-visible::after,
+.main-panel[data-resizing] .panel-divider::after {
+  opacity: 1;
+}
+
+.main-panel[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+@media (max-width: 40rem) {
+  .panel-divider {
+    display: none;
+  }
+}

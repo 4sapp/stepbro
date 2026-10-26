@@ -1,0 +1,128 @@
+import { computed, ref } from 'vue'
+import { accountBalance, toCents } from './financeMath.js'
+
+const storageKey = 'stepbro.finance.v1'
+const defaults = [
+  { id: 'food', name: 'Alimentos', symbol: '🍔', description: '' },
+  { id: 'home', name: 'Hogar', symbol: '🏠', description: '' },
+  { id: 'transport', name: 'Transporte', symbol: '🚗', description: '' },
+  { id: 'leisure', name: 'Ocio', symbol: '🎟️', description: '' },
+  { id: 'health', name: 'Salud', symbol: '💊', description: '' },
+  { id: 'salary', name: 'Sueldo', symbol: '💼', description: '' },
+  { id: 'other', name: 'Otros', symbol: '✳', description: '' },
+]
+const initial = () => ({ accounts: [{ id: 'cash', name: 'Efectivo', opening: 0, type: 'cash', currency: 'USD', symbol: '💵' }], transactions: [], categories: defaults.map(c => ({ ...c })), intentions: [] })
+const error = ref('')
+export const currencies = ['USD', 'MXN', 'EUR', 'COP']
+export const frequencies = [{ id: 'once', label: 'Una vez' }, { id: 'daily', label: 'Diaria' }, { id: 'weekly', label: 'Semanal' }, { id: 'fortnightly', label: 'Quincenal' }, { id: 'monthly', label: 'Mensual' }, { id: 'yearly', label: 'Anual' }]
+export const accountTypes = [{ id: 'cash', label: 'Efectivo', symbol: '💵' }, { id: 'bank', label: 'Banco', symbol: '🏦' }, { id: 'savings', label: 'Ahorro', symbol: '🐷' }, { id: 'other', label: 'Otra', symbol: '👛' }]
+export function localDate() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+export function validDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false
+  const date = new Date(`${value}T12:00:00`)
+  return !Number.isNaN(date.getTime()) && date.getDate() === Number(value.slice(-2))
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return initial()
+    const value = JSON.parse(raw)
+    if (!Array.isArray(value.accounts) || !value.accounts.length || !Array.isArray(value.transactions)
+      || !value.accounts.every(a => typeof a.id === 'string' && typeof a.name === 'string' && Number.isSafeInteger(a.opening))
+      || !value.transactions.every(t => ['income', 'expense', 'transfer'].includes(t.type) && Number.isSafeInteger(t.amount) && t.amount > 0 && typeof t.description === 'string' && validDate(t.date) && value.accounts.some(a => a.id === t.accountId))) throw new Error()
+    // Migra las primeras cuentas sin perder sus movimientos ni el saldo inicial.
+    return { ...value, transactions: value.transactions.map(t => ({ currency: value.accounts.find(a => a.id === t.accountId)?.currency || 'USD', ...t })), accounts: value.accounts.map(a => ({ type: 'cash', currency: 'USD', symbol: '💵', ...a })), categories: Array.isArray(value.categories) ? value.categories : defaults.map(c => ({ ...c })), intentions: Array.isArray(value.intentions) ? value.intentions : [] }
+  } catch { error.value = 'No se pudieron leer los datos guardados en este navegador.'; return initial() }
+}
+const state = ref(load())
+const activeCurrency = ref(state.value.accounts[0].currency)
+const accounts = computed(() => state.value.accounts.map(a => ({ ...a, balance: accountBalance(a, state.value.transactions) })))
+const categories = computed(() => state.value.categories)
+const intentions = computed(() => [...state.value.intentions].sort((a, b) => a.date.localeCompare(b.date)))
+const transactions = computed(() => [...state.value.transactions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt))
+const balance = computed(() => accounts.value.filter(a => a.currency === activeCurrency.value).reduce((sum, a) => sum + a.balance, 0))
+const monthIncome = computed(() => transactions.value.filter(t => t.type === 'income' && t.currency === activeCurrency.value && t.date.startsWith(localDate().slice(0, 7))).reduce((n, t) => n + t.amount, 0))
+const monthExpense = computed(() => transactions.value.filter(t => t.type === 'expense' && t.currency === activeCurrency.value && t.date.startsWith(localDate().slice(0, 7))).reduce((n, t) => n + t.amount, 0))
+export const money = (cents, currency = 'USD') => new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
+export const categoryFor = id => state.value.categories.find(c => c.id === id) || { name: 'Sin categoría', symbol: '·' }
+function commit(next) {
+  try { localStorage.setItem(storageKey, JSON.stringify(next)) }
+  catch { throw new Error('No se pudo guardar. Comprueba que el navegador permita almacenamiento local.') }
+  state.value = next; error.value = ''
+}
+const requireName = (name, max = 120) => { if (!String(name || '').trim()) throw new Error('Escribe un nombre o descripción.'); return name.trim().slice(0, max) }
+function movementData(input) {
+  const account = state.value.accounts.find(a => a.id === input.accountId)
+  if (!account) throw new Error('Selecciona una cuenta.')
+  const amount = toCents(input.amount)
+  if (!amount) throw new Error('El importe debe ser mayor que cero.')
+  if (!['income', 'expense', 'transfer'].includes(input.type)) throw new Error('Selecciona un tipo de movimiento.')
+  if (!validDate(input.date)) throw new Error('Selecciona una fecha válida.')
+  if (input.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) throw new Error('La hora no es válida.')
+  if (input.category && !categories.value.some(c => c.id === input.category)) throw new Error('Selecciona una categoría válida.')
+  let destinationAmount, destinationCurrency
+  if (input.type === 'transfer') {
+    const destination = state.value.accounts.find(a => a.id === input.destinationId)
+    if (!destination || destination.id === account.id) throw new Error('Selecciona una cuenta de destino diferente.')
+    destinationCurrency = destination.currency
+    destinationAmount = destination.currency === account.currency ? amount : toCents(input.destinationAmount)
+    if (!destinationAmount) throw new Error('Indica cuánto recibe la cuenta de destino.')
+  }
+  return { type: input.type, amount, accountId: account.id, currency: account.currency, description: requireName(input.description), category: input.category || '', date: input.date, time: input.time || '', note: String(input.note || '').slice(0, 1000), destinationId: input.type === 'transfer' ? input.destinationId : '', destinationAmount, destinationCurrency }
+}
+function saveMovement(input, id) {
+  const existing = id && state.value.transactions.find(t => t.id === id)
+  if (id && !existing) throw new Error('Este movimiento ya no existe.')
+  const item = { ...movementData(input), id: existing?.id || crypto.randomUUID(), createdAt: existing?.createdAt || Date.now() }
+  commit({ ...state.value, transactions: existing ? state.value.transactions.map(t => t.id === id ? item : t) : [...state.value.transactions, item] })
+}
+function deleteMovement(id) { commit({ ...state.value, transactions: state.value.transactions.filter(t => t.id !== id) }) }
+function saveAccount(input, id) {
+  const existing = state.value.accounts.find(a => a.id === id)
+  const name = requireName(input.name, 40)
+  if (state.value.accounts.some(a => a.id !== id && a.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('Ya existe una cuenta con ese nombre.')
+  if (!currencies.includes(input.currency)) throw new Error('Selecciona una moneda válida.')
+  if (existing && existing.currency !== input.currency && [...state.value.transactions, ...state.value.intentions].some(t => t.accountId === id || t.destinationId === id)) throw new Error('No se puede cambiar la moneda de una cuenta con movimientos o intenciones.')
+  const type = accountTypes.find(t => t.id === input.type)
+  if (!type) throw new Error('Selecciona un tipo de cuenta.')
+  const item = { id: id || crypto.randomUUID(), name, opening: toCents(input.opening || '0'), currency: input.currency, type: type.id, symbol: type.symbol }
+  commit({ ...state.value, accounts: id ? state.value.accounts.map(a => a.id === id ? item : a) : [...state.value.accounts, item] })
+  if (!state.value.accounts.some(a => a.currency === activeCurrency.value)) activeCurrency.value = item.currency
+}
+function deleteAccount(id) {
+  if (state.value.accounts.length === 1) throw new Error('Conserva al menos una cuenta.')
+  if (state.value.transactions.some(t => t.accountId === id || t.destinationId === id) || state.value.intentions.some(t => t.accountId === id || t.destinationId === id)) throw new Error('Esta cuenta tiene movimientos o intenciones asociados.')
+  commit({ ...state.value, accounts: state.value.accounts.filter(a => a.id !== id) })
+  if (!state.value.accounts.some(a => a.currency === activeCurrency.value)) activeCurrency.value = state.value.accounts[0].currency
+}
+function saveCategory(input, id) {
+  const name = requireName(input.name, 40)
+  if (categories.value.some(c => c.id !== id && c.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('Ya existe esa categoría.')
+  const item = { id: id || crypto.randomUUID(), name, description: String(input.description || '').slice(0, 400), symbol: String(input.symbol || '✳').slice(0, 12) }
+  commit({ ...state.value, categories: id ? categories.value.map(c => c.id === id ? item : c) : [...categories.value, item] })
+}
+function deleteCategory(id) {
+  commit({ ...state.value, categories: categories.value.filter(c => c.id !== id), transactions: state.value.transactions.map(t => t.category === id ? { ...t, category: '' } : t), intentions: state.value.intentions.map(t => t.category === id ? { ...t, category: '' } : t) })
+}
+function saveIntention(input, id) {
+  const name = requireName(input.name)
+  const amount = toCents(input.amount)
+  if (!amount) throw new Error('El monto esperado debe ser mayor que cero.')
+  if (!frequencies.some(f => f.id === input.frequency) || !validDate(input.date)) throw new Error('Revisa la frecuencia y la fecha.')
+  if (input.accountId && !accounts.value.some(a => a.id === input.accountId)) throw new Error('Selecciona una cuenta válida.')
+  if (input.category && !categories.value.some(c => c.id === input.category)) throw new Error('Selecciona una categoría válida.')
+  if (input.destinationId && (!accounts.value.some(a => a.id === input.destinationId) || input.destinationId === input.accountId)) throw new Error('El destino debe ser una cuenta diferente.')
+  const item = { id: id || crypto.randomUUID(), name, amount, frequency: input.frequency, date: input.date, note: String(input.note || '').slice(0, 1000), category: input.category || '', accountId: input.accountId || '', destinationId: input.destinationId || '', currency: accounts.value.find(a => a.id === input.accountId)?.currency || activeCurrency.value, paused: !!input.paused }
+  commit({ ...state.value, intentions: id ? intentions.value.map(t => t.id === id ? item : t) : [...intentions.value, item] })
+}
+function deleteIntention(id) { commit({ ...state.value, intentions: intentions.value.filter(t => t.id !== id) }) }
+function toggleIntention(id) { commit({ ...state.value, intentions: intentions.value.map(t => t.id === id ? { ...t, paused: !t.paused } : t) }) }
+export function useFinanceStore() {
+  return { accounts, transactions, balance, categories, intentions, activeCurrency, monthIncome, monthExpense, error,
+    addMovement: input => saveMovement(input), saveMovement, deleteMovement,
+    addAccount: input => saveAccount({ type: 'cash', currency: activeCurrency.value, ...input }), saveAccount, deleteAccount,
+    saveCategory, deleteCategory, saveIntention, deleteIntention, toggleIntention }
+}

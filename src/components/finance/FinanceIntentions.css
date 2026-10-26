@@ -1,0 +1,92 @@
+.finance-intentions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.finance-intention {
+  padding: 1.25rem;
+  border-radius: 1.75rem;
+  background: var(--theme-surface);
+}
+
+.finance-intention__main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #514357;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.finance-intention__symbol {
+  font-size: 1.75rem;
+}
+
+.finance-intention__main strong {
+  display: block;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.finance-intention__main small {
+  display: block;
+  margin-block-start: 0.4rem;
+  color: #96899e;
+  font-size: 0.75rem;
+}
+
+.finance-intention__amount {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.04em;
+}
+
+.finance-intention > p {
+  color: #918198;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.finance-intention footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-start: 1rem;
+  color: #a095a7;
+  font-size: 0.7rem;
+}
+
+.finance-intention footer button {
+  border: 0;
+  border-radius: 1rem;
+  background: var(--theme-outline);
+  color: #86718f;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.finance-intention--paused {
+  opacity: 0.6;
+}
+
+.finance-intentions__empty {
+  min-block-size: 18rem;
+}
+
+@media (max-width: 40rem) {
+  .finance-intention__main {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .finance-intention__amount {
+    font-size: 0.95rem;
+  }
+}

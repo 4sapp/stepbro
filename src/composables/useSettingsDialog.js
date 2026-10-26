@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { popoverEase, fadeEase, blurEase, liquidSizeEase, createPositionSpring } from './motionProfiles'
 import { useDragDismiss } from './useDragDismiss'
 
-export function useSettingsDialog({ anchored = false } = {}) {
+export function useSettingsDialog({ anchored = false, placement, responsive = false } = {}) {
   const dialog = ref(null)
   let timeline
   let spring
@@ -36,7 +36,7 @@ export function useSettingsDialog({ anchored = false } = {}) {
     returnFocus = origin || document.activeElement
     content = dialog.value.querySelector('[data-dialog-content]')
     dialog.value.showModal()
-    if (anchored) {
+    if (anchored && placement !== 'end') {
       const menu = origin?.closest('.options-menu')?.getBoundingClientRect()
       gsap.set(dialog.value, {
         left: Math.max(12, Math.min(menu?.left ?? 12, innerWidth - dialog.value.offsetWidth - 12)),
@@ -44,16 +44,19 @@ export function useSettingsDialog({ anchored = false } = {}) {
       })
     }
     const box = dialog.value.getBoundingClientRect()
+    const contentWidth = dialog.value.clientWidth
+    const contentHeight = dialog.value.clientHeight
     destination = { left: box.left, top: box.top, width: box.width, height: box.height, radius: getComputedStyle(dialog.value).borderRadius }
     const from = originRect()
     gsap.set(dialog.value, { position: 'fixed', margin: 0, right: 'auto', bottom: 'auto', left: from.left, top: from.top, width: from.width, height: from.height, overflow: 'hidden', borderRadius: getComputedStyle(returnFocus).borderRadius, '--dialog-backdrop-opacity': 0, filter: reduced() ? 'none' : 'blur(8px)' })
-    gsap.set(content, { width: box.width, height: box.height, transformOrigin: 'center center' })
+    gsap.set(content, { width: contentWidth, height: contentHeight, transformOrigin: 'center center' })
     if (reduced()) {
       gsap.set(dialog.value, { left: box.left, top: box.top, width: box.width, height: box.height, borderRadius: destination.radius, '--dialog-backdrop-opacity': 1, filter: 'none', overflow: 'auto' })
+      gsap.set(content, { clearProps: 'width,height' })
       ready = true
       return
     }
-    timeline = gsap.timeline({ onComplete: () => { ready = true; dialog.value.style.overflow = 'auto' } })
+    timeline = gsap.timeline({ onComplete: () => { ready = true; gsap.set(content, { clearProps: 'width,height' }); dialog.value.style.overflow = 'auto' } })
     // El contorno acompaña al desenfoque del contenido durante la transición.
     timeline.to(dialog.value, { filter: 'blur(0px)', duration: anchored ? 0.7 : 0.3, ease: anchored ? popoverEase : 'power1.out' }, 0)
     timeline.to(dialog.value, { '--dialog-backdrop-opacity': 1, duration: 0.5, ease: 'power3.out' }, 0)
@@ -99,11 +102,23 @@ export function useSettingsDialog({ anchored = false } = {}) {
     }
   }
 
+  function resize() {
+    if (!responsive || !dialog.value?.open || closing) return
+    spring?.stop()
+    timeline?.kill()
+    gsap.set(dialog.value, { clearProps: 'all' })
+    gsap.set(content, { clearProps: 'all' })
+    const box = dialog.value.getBoundingClientRect()
+    destination = { left: box.left, top: box.top, width: box.width, height: box.height, radius: getComputedStyle(dialog.value).borderRadius }
+    ready = true
+  }
+  if (responsive) window.addEventListener('resize', resize)
+
   function backdrop(event) {
     if (event.target !== dialog.value) return
     const r = dialog.value.getBoundingClientRect()
     if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) close()
   }
-  onBeforeUnmount(() => { timeline?.kill(); spring?.stop(); if (dialog.value?.open) dialog.value.close() })
+  onBeforeUnmount(() => { window.removeEventListener('resize', resize); timeline?.kill(); spring?.stop(); if (dialog.value?.open) dialog.value.close() })
   return { dialog, open, close, backdrop, drag }
 }

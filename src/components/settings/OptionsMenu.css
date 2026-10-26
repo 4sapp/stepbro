@@ -10,7 +10,7 @@
   position: fixed;
   inset: auto;
   inline-size: min(15rem, calc(100vw - 1.5rem));
-  max-block-size: calc(100svh - 1.5rem);
+  max-block-size: var(--options-max-height, calc(100svh - 1.5rem));
   margin: 0;
   padding: 0;
   border: 0;
@@ -36,13 +36,15 @@
   position: relative;
   padding: 1.5rem;
   transform-origin: top left;
-  overflow: hidden;
+  overflow: auto;
+  max-block-size: var(--options-max-height, calc(100svh - 1.5rem));
+  scrollbar-width: none;
   border-radius: inherit;
 }
 
 .options-menu h2 {
   block-size: 1.875rem;
-  margin: 0 0 3.5rem;
+  margin: 0 0 1.5rem;
   font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.875rem;
@@ -108,4 +110,8 @@
 .options-menu {
   touch-action: none;
   user-select: none;
+}
+.options-menu .options-menu__intentions { display: none; }
+@media (max-width: 40rem) {
+  .options-menu .options-menu__intentions { display: flex; }
 }

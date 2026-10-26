@@ -1,28 +1,62 @@
 .balance-summary {
-  /* Reserva el espacio de la tarjeta de la referencia, todavía sin fondo. */
+  /* Proporciones de sb Money: espacio arriba, saldo apoyado abajo. */
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   inline-size: 100%;
-  min-block-size: 40svh;
+  min-block-size: 17.75rem;
   margin: 0;
-  padding: clamp(1.25rem, 2.5vw, 3rem);
-  color: #111;
+  padding: 2rem;
+  border-radius: 2.5rem;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--theme-page);
+  color: var(--theme-ink);
 }
 
 .balance-summary__label {
-  font-size: clamp(1.125rem, 1.875vw, 2.25rem);
+  position: relative;
+  font-size: 1.5rem;
   font-weight: 400;
   line-height: 1.3;
+  opacity: 0.8;
 }
 
 .balance-summary__amount {
-  margin: 0.25rem 0 0;
-
-  /* Tamaño fluido: crece con la pantalla, hasta 88 px. */
-  font-size: clamp(2rem, 4.6vw, 5.5rem);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.055em;
+  position: relative;
+  margin: 0.3rem 0 0;
+  font-size: clamp(2.5rem, 5.25vw, 4rem);
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -0.06em;
   font-variant-numeric: lining-nums tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .balance-summary {
+    min-block-size: 14rem;
+    padding: 1.5rem;
+    border-radius: 2rem;
+  }
+  .balance-summary__label {
+    font-size: 1rem;
+  }
+}
+
+.balance-summary__top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.balance-summary__top dd {
+  margin: 0;
+}
+
+.balance-summary__code {
+  color: var(--theme-muted);
+  font-size: 0.75rem;
 }
