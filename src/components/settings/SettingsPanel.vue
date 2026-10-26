@@ -2,7 +2,10 @@
 import { nextTick, ref } from 'vue'
 import { useSettingsDialog } from '../../composables/useSettingsDialog'
 import { currencies, useFinanceStore } from '../../composables/useFinanceStore'
+import { useLocationPreference } from '../../composables/useLocationPreference'
 import FinanceSelect from '../FinanceSelect.vue'
+import EmptyStateDots from '../EmptyStateDots.vue'
+import MaterialIcon from '../MaterialIcon.vue'
 import FinanceDialog from '../finance/FinanceDialog.vue'
 import SettingsIcon from './SettingsIcon.vue'
 import './SettingsPanel.css'
@@ -11,6 +14,7 @@ import './SettingsPanel.css'
 defineProps({ profile: { type: Object, default: () => ({ email: 'oxseduzco@gmail.com', name: 'Oxseduzco', plan: 'Prueba gratuita', verified: true }) } })
 const { dialog, open: openDialog, close, backdrop, drag } = useSettingsDialog({ responsive: true })
 const { activeCurrency } = useFinanceStore()
+const { locationEnabled } = useLocationPreference()
 const section = ref('account')
 const plans = ref(null)
 const tabs = [{ id: 'account', label: 'Cuenta' }, { id: 'general', label: 'General' }, { id: 'agent', label: 'Agente' }]
@@ -52,14 +56,51 @@ defineExpose({ open })
               </div>
               <div class="settings-verification"><SettingsIcon name="verified" /><div><span>Correo</span><small>{{ profile.verified ? 'Verificado' : 'Sin verificar' }}</small></div></div>
             </div>
-            <div v-else-if="section === 'general'" class="settings-section" data-no-drag>
-              <div class="settings-option"><div><h3>Divisa principal</h3><p>Se usa para mostrar los totales y las estadísticas.</p></div><FinanceSelect v-model="activeCurrency" aria-label="Divisa principal"><option v-for="currency in currencies" :key="currency">{{ currency }}</option></FinanceSelect></div>
-              <div class="settings-option"><div><h3>Registrar ubicación</h3><p>Guarda tu ubicación al registrar un movimiento.</p><small>Disponible al conectar tu cuenta.</small></div><button class="settings-switch" type="button" role="switch" aria-label="Registrar ubicación" :aria-checked="false" disabled /></div>
+            <div v-else-if="section === 'general'" class="general-settings" data-no-drag>
+              <div class="general-card">
+                <MaterialIcon name="currency_exchange" filled />
+                <div>
+                  <h3>Divisa principal</h3>
+                  <p>Se usa para mostrar los totales y las estadísticas.</p>
+                </div>
+                <FinanceSelect v-model="activeCurrency" aria-label="Divisa principal">
+                  <option v-for="currency in currencies" :key="currency">{{ currency }}</option>
+                </FinanceSelect>
+              </div>
+              <div class="general-card general-card--toggle" @click="locationEnabled = !locationEnabled">
+                <MaterialIcon name="location_on" filled />
+                <div>
+                  <h3>Registrar ubicación</h3>
+                  <p>Guarda tu ubicación al registrar un movimiento.</p>
+                </div>
+                <button class="settings-switch general-card__switch" type="button" role="switch" aria-label="Registrar ubicación" :aria-checked="locationEnabled" @click.stop="locationEnabled = !locationEnabled" />
+              </div>
             </div>
-            <div v-else class="settings-section" data-no-drag>
-              <div class="settings-option"><div><h3>Modo automático</h3><p>El agente ejecuta acciones reversibles sin pedir confirmación. Las acciones irreversibles siempre requieren confirmación.</p><small>Disponible al conectar tu agente.</small></div><button class="settings-switch" type="button" role="switch" aria-label="Modo automático" :aria-checked="false" disabled /></div>
-              <div class="settings-option"><div><h3>Memoria del agente</h3><p>El agente recuerda información para ayudarte en futuras conversaciones. Puedes olvidarla cuando quieras.</p><small>Todavía no hay un agente conectado.</small></div></div>
-              <div class="settings-option"><div><h3>Capacidad de IA</h3><p>Cuánta IA te queda esta semana. Se recupera poco a poco conforme tu uso deja de contar.</p><small>Conecta tu cuenta para consultar tu capacidad.</small></div></div>
+            <div v-else class="agent-settings" data-no-drag>
+              <div class="agent-card agent-card--automatic">
+                <MaterialIcon name="lock_open" filled />
+                <h3>Modo automático</h3>
+                <p>El agente ejecuta acciones reversibles sin pedir confirmación. Las acciones irreversibles siempre requieren confirmación.</p>
+                <button class="settings-switch agent-card__switch" type="button" role="switch" aria-label="Modo automático" :aria-checked="false" disabled />
+                <small>Disponible al conectar tu agente.</small>
+              </div>
+              <div class="agent-card">
+                <h3>Memoria del agente</h3>
+                <p>El agente recuerda información para ayudarte en futuras conversaciones. Puedes olvidarla cuando quieras.</p>
+                <div class="agent-card__empty">
+                  <EmptyStateDots />
+                  <span>Todavía no hay un agente conectado.</span>
+                </div>
+              </div>
+              <div class="agent-card agent-card--capacity">
+                <h3>Capacidad de IA</h3>
+                <p>Cuánta IA te queda esta semana. Se recupera poco a poco conforme tu uso deja de contar.</p>
+                <div class="agent-capacity" aria-label="Capacidad no disponible">
+                  <strong>No disponible</strong>
+                  <div class="agent-capacity__track" aria-hidden="true" />
+                  <small>Conecta tu cuenta para consultar tu capacidad.</small>
+                </div>
+              </div>
             </div>
           </section>
         </div>

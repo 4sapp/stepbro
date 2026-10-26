@@ -8,6 +8,11 @@
   background: var(--theme-page);
   border-radius: 0;
 }
+
 @media (max-width: 40rem) {
-  .main-panel { display: block; min-block-size: 100svh; border-radius: 0; }
+  .main-panel {
+    display: block;
+    min-block-size: 100svh;
+    border-radius: 0;
+  }
 }

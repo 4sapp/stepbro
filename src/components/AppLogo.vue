@@ -11,6 +11,17 @@ const markup = createLogoSvg({
 </script>
 <template><span class="app-logo" aria-hidden="true" v-html="markup" /></template>
 <style>
-.app-logo { display: inline-block; flex-shrink: 0; inline-size: 2.25rem; block-size: 2.25rem; }
-.app-logo > svg { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
+.app-logo {
+  display: inline-block;
+  flex-shrink: 0;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+}
+
+.app-logo > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
 </style>

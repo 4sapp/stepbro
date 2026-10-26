@@ -92,3 +92,22 @@ test('un fallo de almacenamiento no modifica el saldo en memoria', async () => {
 test('la fórmula pura aplica importes recibidos de transferencias', () => {
   assert.equal(accountBalance({ id: 'eur', opening: 0 }, [{ type: 'transfer', accountId: 'usd', destinationId: 'eur', amount: 5000, destinationAmount: 4500 }]), 4500)
 })
+
+test('conserva la ubicación de un movimiento al editarlo y recargar', async () => {
+  const { store, values } = await freshStore()
+  const location = { latitude: 4.61, longitude: -74.08, accuracy: 25 }
+  store.saveMovement(movement({ location }))
+  const saved = store.transactions.value[0]
+  store.saveMovement(movement({ description: 'Editado' }), saved.id)
+  assert.deepEqual(store.transactions.value[0].location, location)
+  const reloaded = await freshStore(JSON.parse(values.get('stepbro.finance.v1')))
+  assert.deepEqual(reloaded.store.transactions.value[0].location, location)
+})
+
+test('recuerda la divisa principal al volver a abrir la app', async () => {
+  const { store, values } = await freshStore()
+  store.activeCurrency.value = 'MXN'
+  assert.equal(values.get('stepbro.primary-currency'), 'MXN')
+  const module = await import(`../src/composables/useFinanceStore.js?test=${crypto.randomUUID()}`)
+  assert.equal(module.useFinanceStore().activeCurrency.value, 'MXN')
+})

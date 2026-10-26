@@ -49,11 +49,12 @@ export function useMorphPanel() {
   function finishClose() {
     timeline?.kill()
     gsap.killTweensOf(dialog.value)
+    // El botón reaparece en el mismo fotograma en que se retira el panel.
+    trigger.style.opacity = triggerOpacity
     dialog.value.close()
     dialog.value.removeAttribute('data-backdrop-closing')
     gsap.set([dialog.value, surface, layout], { clearProps: 'all' })
     document.body.style.overflow = previousOverflow
-    trigger.style.opacity = triggerOpacity
     if (trigger.isConnected) trigger.focus({ preventScroll: true })
     phase.value = 'closed'
     timeline = null
@@ -68,24 +69,37 @@ export function useMorphPanel() {
     const panel = dialog.value
     const state = originState()
     panel.style.overflow = 'hidden'
-    layout.style.overflow = 'hidden'
+    // Conserva el ancho y alto del formulario mientras se encoge la ventana.
+    // Así sus textos y campos no se redistribuyen en cada fotograma.
+    const contentWidth = layout.offsetWidth
+    const contentHeight = layout.offsetHeight
+    gsap.set(layout, {
+      width: contentWidth,
+      height: contentHeight,
+      minWidth: contentWidth,
+      minHeight: contentHeight,
+      overflow: 'hidden',
+    })
     panel.style.pointerEvents = 'none'
     timeline = gsap.timeline()
-    timeline.add(Flip.to(state, { targets: panel, duration: 0.5, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(panel, { borderRadius: radius(trigger), duration: 0.5, ease: popoverEase }, 0)
-    timeline.to(surface, { backgroundColor: getComputedStyle(trigger).backgroundColor, duration: 0.5, ease: popoverEase }, 0)
-    // La trayectoria del contenido dura 2 s en el original; se desvanece
-    // durante los primeros 0.5 s mientras la superficie llega antes al botón.
-    timeline.to(layout, {
-      x: 0, y: 0, scaleX: lastOrigin.width / layout.offsetWidth,
-      scaleY: lastOrigin.height / layout.offsetHeight,
-      duration: 2, ease: popoverEase,
+    timeline.add(Flip.to(state, { targets: panel, duration: 0.2, scale: false, absolute: false, ease: popoverEase }), 0)
+    timeline.to(panel, { borderRadius: radius(trigger), duration: 0.2, ease: popoverEase }, 0)
+    timeline.to(surface, {
+      backgroundColor: getComputedStyle(trigger).backgroundColor,
+      boxShadow: '0 0 0 0 rgba(0, 0, 0, 0)',
+      duration: 0.2,
+      ease: popoverEase,
     }, 0)
-    timeline.to(layout, { borderRadius: '400px', duration: 0.5, ease: fadeEase }, 0)
-    timeline.to(layout, { filter: 'blur(32px)', duration: 0.5, ease: blurEase }, 0)
-    timeline.to(layout, { opacity: 0, duration: 0.5, ease: fadeEase }, 0)
+    // El formulario conserva su escala: solo se difumina mientras el
+    // contorno se contrae, evitando que letras e iconos tiemblen.
+    timeline.to(layout, { filter: 'blur(12px)', duration: 0.2, ease: blurEase }, 0)
+    timeline.to(layout, { opacity: 0, duration: 0.18, ease: fadeEase }, 0)
+    // El original desvanece toda la ventana al volver al origen y recupera
+    // el botón durante los últimos 300 ms de la misma transición.
+    timeline.to(panel, { opacity: 0, duration: 0.5, ease: 'power3.in' }, 0)
     timeline.to(trigger, { opacity: triggerOpacity || 1, duration: 0.3, ease: 'power2.out' }, 0.2)
     timeline.call(finishClose, [], 0.5)
+
   }
 
   function open(event) {
@@ -132,11 +146,6 @@ export function useMorphPanel() {
     timeline.fromTo(surface, { backgroundColor: getComputedStyle(trigger).backgroundColor }, {
       backgroundColor: targetColor, duration: reduced ? 0 : 0.3, ease: popoverEase,
     }, 0)
-    // La superficie ya se desplaza desde el botón. El contenido solo escala
-    // en sus coordenadas locales: otro Flip aquí aplica dos veces el origen.
-    timeline.fromTo(layout, {
-      x: 0, y: 0, scaleX: start.width / width, scaleY: start.height / height,
-    }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration, ease: popoverEase }, 0)
     timeline.fromTo(layout, { opacity: 0, filter: reduced ? 'none' : 'blur(8px)' }, {
       opacity: 1, filter: 'blur(0px)', duration, ease: popoverEase,
     }, 0)

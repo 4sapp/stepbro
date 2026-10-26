@@ -25,3 +25,15 @@ dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[
 dialog:is(.movement-panel, .appearance-panel)::backdrop {
   background: rgb(30 25 35 / 16%);
 }
+
+/* Mantiene el desplazamiento natural dentro de las ventanas sin mostrar
+   las barras que el navegador agrega a sus contenedores. */
+dialog[class],
+dialog[class] * {
+  scrollbar-width: none;
+}
+
+dialog[class]::-webkit-scrollbar,
+dialog[class] *::-webkit-scrollbar {
+  display: none;
+}

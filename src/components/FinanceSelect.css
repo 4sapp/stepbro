@@ -3,6 +3,7 @@
   display: block;
   min-inline-size: 0;
 }
+
 .finance-select select.finance-select__native {
   position: absolute;
   inline-size: 1px;
@@ -13,6 +14,7 @@
   overflow: hidden;
   pointer-events: none;
 }
+
 .finance-select__trigger {
   display: flex;
   align-items: center;
@@ -32,10 +34,27 @@
   cursor: pointer;
   transition: background 160ms, box-shadow 160ms;
 }
-.finance-select__trigger:hover { background: var(--theme-hover); }
-.finance-select__trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.finance-select__trigger svg { flex-shrink: 0; fill: var(--theme-muted); transition: transform 200ms; }
-.finance-select__trigger[aria-expanded='true'] svg { transform: rotate(180deg); }
+
+.finance-select__trigger:hover {
+  background: var(--theme-hover);
+}
+
+.finance-select__trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finance-select__trigger svg {
+  flex-shrink: 0;
+  fill: var(--theme-muted);
+  transition: transform 200ms;
+}
+
+.finance-select__trigger[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
 .finance-select__list {
   position: fixed;
   inset: auto;
@@ -49,7 +68,11 @@
   overflow: hidden;
   font: inherit;
 }
-.finance-select__list.is-closing { pointer-events: none; }
+
+.finance-select__list.is-closing {
+  pointer-events: none;
+}
+
 .finance-select__content {
   display: flex;
   flex-direction: column;
@@ -58,7 +81,11 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
-.finance-select__content::-webkit-scrollbar { display: none; }
+
+.finance-select__content::-webkit-scrollbar {
+  display: none;
+}
+
 .finance-select__option {
   display: flex;
   align-items: center;
@@ -72,23 +99,83 @@
   transition: background 150ms, color 150ms;
   cursor: pointer;
 }
-.finance-select__option.is-pointed { background: var(--theme-hover); color: var(--theme-muted); }
-.finance-select__option[aria-selected='true'] { background: var(--theme-container); color: var(--theme-on-container); border-radius: 1rem; }
+
+.finance-select__option.is-pointed {
+  background: var(--theme-hover);
+  color: var(--theme-muted);
+}
+
+.finance-select__option[aria-selected='true'] {
+  background: var(--theme-container);
+  color: var(--theme-on-container);
+  border-radius: 1rem;
+}
+
 .finance-select__option[aria-selected='true']:first-child,
-.finance-select__option[aria-selected='true']:last-child { border-radius: 1.5rem; }
-.finance-select__label { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.finance-select__option[aria-selected='true']:last-child {
+  border-radius: 1.5rem;
+}
+
+.finance-select__label {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .finance-select__list::backdrop {
   background: rgb(0 0 0 / 10%);
   animation: select-backdrop-in 500ms linear;
 }
-.finance-select__list.is-closing::backdrop { animation: select-backdrop-out 500ms ease-in forwards; }
-@keyframes select-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes select-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
-.finance-select__option[aria-disabled='true'] { opacity: 0.45; cursor: default; }
-.finance-select__empty { padding: 0.75rem; font-size: 0.875rem; }
-.finance-select.finance-currency { padding: 0; border: 0; }
-.finance-currency .finance-select__trigger { min-block-size: 2.5rem; font-size: 0.8rem; }
+
+.finance-select__list.is-closing::backdrop {
+  animation: select-backdrop-out 500ms ease-in forwards;
+}
+
+@keyframes select-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes select-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.finance-select__option[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.finance-select__empty {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.finance-select.finance-currency {
+  padding: 0;
+  border: 0;
+}
+
+.finance-currency .finance-select__trigger {
+  min-block-size: 2.5rem;
+  font-size: 0.8rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .finance-select__trigger, .finance-select__trigger svg, .finance-select__option { transition: none; }
-  .finance-select__list::backdrop { animation: none; }
+  .finance-select__trigger, .finance-select__trigger svg, .finance-select__option {
+    transition: none;
+  }
+  .finance-select__list::backdrop {
+    animation: none;
+  }
 }

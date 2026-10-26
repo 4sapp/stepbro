@@ -107,7 +107,6 @@
   font-family: var(--font-sans);
 }
 
-
 .finance-dialog__body {
   padding: 1.5rem;
   box-sizing: border-box;
@@ -253,8 +252,32 @@
   }
 }
 
-.finance-feedback { max-inline-size: 36rem; margin: 4rem auto; }
-.finance-feedback h1 { margin-block: 2rem 1rem; font-size: 2rem; font-weight: 400; }
-.finance-feedback p, .finance-extra-fields__description { color: var(--theme-muted); line-height: 1.6; }
-.finance-feedback__link { display: inline-block; margin-block-start: 1rem; padding: 1rem 1.5rem; background: var(--theme-strong); color: white; border-radius: 2rem; text-decoration: none; }
-.finance-feedback .finance-feedback__note { font-size: 0.8rem; }
+.finance-feedback {
+  max-inline-size: 36rem;
+  margin: 4rem auto;
+}
+
+.finance-feedback h1 {
+  margin-block: 2rem 1rem;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.finance-feedback p, .finance-extra-fields__description {
+  color: var(--theme-muted);
+  line-height: 1.6;
+}
+
+.finance-feedback__link {
+  display: inline-block;
+  margin-block-start: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--theme-strong);
+  color: white;
+  border-radius: 2rem;
+  text-decoration: none;
+}
+
+.finance-feedback .finance-feedback__note {
+  font-size: 0.8rem;
+}

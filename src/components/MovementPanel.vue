@@ -6,6 +6,7 @@ import TouchButton from './TouchButton.vue'
 import { useMorphPanel } from '../composables/useMorphPanel'
 import { useDragDismiss } from '../composables/useDragDismiss'
 import { useMovementFieldsMotion } from '../composables/useMovementFieldsMotion'
+import { currentLocation, useLocationPreference } from '../composables/useLocationPreference'
 import './MovementPanel.css'
 
 const titleId = useId()
@@ -23,7 +24,7 @@ const editing = ref(null)
 const showNote = ref(false)
 const types = ref(null)
 const typeIndicator = ref(null)
-const emptyForm = () => ({ type: 'expense', amount: '', currency: activeCurrency.value, description: '', accountId: '', category: '', date: localDate(), time: new Date().toTimeString().slice(0, 5), note: '', destinationId: '', destinationAmount: '' })
+const emptyForm = () => ({ type: 'expense', amount: '', currency: activeCurrency.value, description: '', accountId: '', category: '', date: localDate(), time: new Date().toTimeString().slice(0, 5), note: '', destinationId: '', destinationAmount: '', location: null })
 const form = reactive(emptyForm())
 const accountCurrency = computed(() => accounts.value.find(a => a.id === form.accountId)?.currency || form.currency || activeCurrency.value)
 const destinationCurrency = computed(() => accounts.value.find(a => a.id === form.destinationId)?.currency || accountCurrency.value)
@@ -47,6 +48,10 @@ watch(() => form.currency, currency => {
   if (account && account.currency !== currency) form.accountId = ''
 })
 const formError = ref('')
+const saving = ref(false)
+const { locationEnabled } = useLocationPreference()
+let saveRevision = 0
+watch(phase, value => { if (value === 'closing' || value === 'closed') { saveRevision++; saving.value = false } })
 useMovementFieldsMotion({
   dialog, phase, types, indicator: typeIndicator, selectedType: () => form.type,
   sources: () => [form.type, form.accountId, form.currency, form.destinationId, showNote.value, formError.value],
@@ -69,9 +74,22 @@ async function edit(item, event) {
   await nextTick()
   openPanel({ currentTarget: origin })
 }
-function save() {
-  try { saveMovement({ ...form }, editing.value); formError.value = ''; close() }
-  catch (cause) { formError.value = cause.message }
+async function save() {
+  if (saving.value) return
+  const revision = ++saveRevision
+  saving.value = true
+  try {
+    const input = { ...form }
+    if (locationEnabled.value && !editing.value) input.location = await currentLocation()
+    if (revision !== saveRevision) return
+    saveMovement(input, editing.value)
+    formError.value = ''
+    close()
+  } catch (cause) {
+    if (revision === saveRevision) formError.value = cause.message
+  } finally {
+    if (revision === saveRevision) saving.value = false
+  }
 }
 function remove() {
   if (!confirm('¿Eliminar este movimiento? Se actualizará el saldo de la cuenta.')) return
@@ -219,7 +237,7 @@ function closeFromBackdrop(event) {
             <button class="movement-form__cancel" type="button" aria-label="Cancelar" @click="close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>
-            <button class="movement-form__save" type="submit">{{ editing ? 'Guardar' : 'Crear' }}</button>
+            <button class="movement-form__save" type="submit" :disabled="saving">{{ editing ? 'Guardar' : 'Crear' }}</button>
           </footer>
         </TransitionGroup>
       </div>

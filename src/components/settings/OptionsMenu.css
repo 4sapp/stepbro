@@ -48,6 +48,7 @@
   gap: 0.75rem;
   margin-block-end: 1.5rem;
 }
+
 .options-menu h2 {
   block-size: 1.875rem;
   margin: 0;
@@ -113,11 +114,18 @@
 }
 
 /* El menú captura el gesto; los botones conservan sus clics. */
+
 .options-menu {
   touch-action: none;
   user-select: none;
 }
-.options-menu .options-menu__intentions { display: none; }
+
+.options-menu .options-menu__intentions {
+  display: none;
+}
+
 @media (max-width: 40rem) {
-  .options-menu .options-menu__intentions { display: flex; }
+  .options-menu .options-menu__intentions {
+    display: flex;
+  }
 }

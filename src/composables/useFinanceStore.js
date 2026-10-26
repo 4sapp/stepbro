@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { accountBalance, toCents } from './financeMath.js'
 
 const storageKey = 'stepbro.finance.v1'
@@ -38,7 +38,12 @@ function load() {
   } catch { error.value = 'No se pudieron leer los datos guardados en este navegador.'; return initial() }
 }
 const state = ref(load())
-const activeCurrency = ref(state.value.accounts[0].currency)
+let savedCurrency
+try { savedCurrency = localStorage.getItem('stepbro.primary-currency') } catch { /* Usa la moneda inicial. */ }
+const activeCurrency = ref(currencies.includes(savedCurrency) ? savedCurrency : state.value.accounts[0].currency)
+watch(activeCurrency, currency => {
+  try { localStorage.setItem('stepbro.primary-currency', currency) } catch { /* Conserva la selección en esta sesión. */ }
+}, { flush: 'sync' })
 const accounts = computed(() => state.value.accounts.map(a => ({ ...a, balance: accountBalance(a, state.value.transactions) })))
 const categories = computed(() => state.value.categories)
 const intentions = computed(() => [...state.value.intentions].sort((a, b) => a.date.localeCompare(b.date)))
@@ -78,7 +83,13 @@ function movementData(input) {
 function saveMovement(input, id) {
   const existing = id && state.value.transactions.find(t => t.id === id)
   if (id && !existing) throw new Error('Este movimiento ya no existe.')
-  const item = { ...movementData(input), id: existing?.id || crypto.randomUUID(), createdAt: existing?.createdAt || Date.now() }
+  const location = input.location || existing?.location
+  if (location && (!Number.isFinite(location.latitude) || Math.abs(location.latitude) > 90
+    || !Number.isFinite(location.longitude) || Math.abs(location.longitude) > 180
+    || !Number.isFinite(location.accuracy) || location.accuracy < 0)) {
+    throw new Error('La ubicación no es válida.')
+  }
+  const item = { ...movementData(input), ...(location ? { location: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } } : {}), id: existing?.id || crypto.randomUUID(), createdAt: existing?.createdAt || Date.now() }
   commit({ ...state.value, transactions: existing ? state.value.transactions.map(t => t.id === id ? item : t) : [...state.value.transactions, item] })
 }
 function deleteMovement(id) { commit({ ...state.value, transactions: state.value.transactions.filter(t => t.id !== id) }) }
