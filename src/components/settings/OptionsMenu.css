@@ -1,0 +1,111 @@
+.options-trigger__icon {
+  inline-size: 21px;
+  text-align: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.options-menu {
+  /* La posición final se calcula desde el botón; esta caja no se redimensiona. */
+  position: fixed;
+  inset: auto;
+  inline-size: min(15rem, calc(100vw - 1.5rem));
+  max-block-size: calc(100svh - 1.5rem);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2rem;
+  overflow: visible;
+  background: transparent;
+  color: rgb(250 249 252 / 70%);
+  font: inherit;
+}
+
+.options-menu__surface {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* Equivalente a las dos capas al 30 % del menú original. */
+  background: rgb(29 27 30 / 51%);
+  backdrop-filter: blur(24px) saturate(2);
+  -webkit-backdrop-filter: blur(24px) saturate(2);
+  pointer-events: none;
+}
+
+.options-menu__layout {
+  position: relative;
+  padding: 1.5rem;
+  transform-origin: top left;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.options-menu h2 {
+  block-size: 1.875rem;
+  margin: 0 0 3.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.875rem;
+  letter-spacing: -0.03em;
+  transform-origin: left center;
+}
+
+.options-menu__items {
+  display: grid;
+}
+
+.options-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  inline-size: 100%;
+  min-block-size: 2.8rem;
+  padding: 0.65rem 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.options-menu button:hover:not(:disabled) {
+  color: #fff;
+  background: rgb(255 255 255 / 7%);
+}
+
+.options-menu button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.options-menu button > span {
+  display: grid;
+  place-items: center;
+  inline-size: 1rem;
+  font-size: 1rem;
+}
+
+@media (max-height: 30rem) {
+  .options-menu h2 {
+    margin-block-end: 0.5rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .dashboard-sidebar__options .options-trigger__icon {
+    position: static;
+    inline-size: 21px;
+    block-size: auto;
+    clip-path: none;
+    overflow: visible;
+  }
+}
+
+/* El menú captura el gesto; los botones conservan sus clics. */
+.options-menu {
+  touch-action: none;
+  user-select: none;
+}

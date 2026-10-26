@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "gsap": "^3.15.0",
+    "super-beautiful-toast": "^0.1.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {

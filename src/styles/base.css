@@ -1,3 +1,9 @@
+/* Familias de sb Tasks. Cambia estas variables para ajustar toda la app. */
+:root {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+
 /* Base global: evita márgenes y mantiene un tamaño predecible. */
 * {
   box-sizing: border-box;
@@ -5,7 +11,34 @@
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  color: #27232b;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #8b779a;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
 }
 
 html,

@@ -1,0 +1,6 @@
+.dashboard-content {
+  display: grid;
+  align-content: center;
+  min-inline-size: 0;
+  padding: clamp(1rem, 4vw, 4rem);
+}

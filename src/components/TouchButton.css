@@ -15,6 +15,11 @@
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  transition: scale 160ms ease-out;
+}
+
+.touch-button:active {
+  scale: 0.96;
 }
 
 .touch-button:focus-visible {
@@ -48,5 +53,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .touch-button { transition: none; }
   .touch-button__ripple { animation-duration: 1ms; }
 }

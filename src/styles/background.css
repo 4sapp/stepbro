@@ -13,9 +13,8 @@
   min-height: 100vh;
   min-height: 100svh;
 
-  /* El margen crece con la pantalla: 12.5% a cada lado en escritorio. */
-  padding-block: 6.25svh;
-  padding-inline: clamp(1rem, 12.5vw, 15rem);
+  /* Un marco pequeño deja espacio para trabajar dentro del dashboard. */
+  padding: clamp(0.75rem, 2.5vw, 2rem);
 
   background-color: var(--background-base);
 

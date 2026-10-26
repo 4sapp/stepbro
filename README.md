@@ -17,6 +17,7 @@ Abre la dirección que aparece en la terminal.
 
 - `src/components/`: componentes y sus archivos CSS.
 - `src/composables/useMorphPanel.js`: lógica del panel. En `motion` puedes ajustar la duración, la curva y el blur.
+- `src/composables/useDragDismiss.js`: arrastre para cerrar. En `gesture` puedes ajustar la distancia y la resistencia del gesto.
 - `src/styles/`: estilos generales y degradado del fondo.
 
 Para usar el efecto en otro panel, toma `MovementPanel.vue` como ejemplo. Los atributos `data-shared-item` emparejan el icono y el título del botón con los del panel.

@@ -1,14 +1,15 @@
 .main-panel {
-  /* 1440 × 810 sobre una pantalla de 1920 × 1080, como la referencia. */
-  --panel-width: 90rem;
-  --panel-radius: clamp(1.25rem, 1.5vw, 1.75rem);
+  /* Ancho de la barra lateral y del escritorio completo. */
+  --panel-width: 100rem;
+  --sidebar-width: 15rem;
+  --panel-radius: 1.25rem;
 
   display: grid;
-  align-content: center;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 
   inline-size: min(100%, var(--panel-width));
-  min-block-size: 75svh;
-  padding-inline: clamp(1rem, 13.25vw, 16rem);
+  min-block-size: calc(100svh - 4rem);
+  overflow: clip;
   border-radius: var(--panel-radius);
   /* Delimita el panel incluso en la zona más clara del degradado. */
   border: 1px solid rgb(30 30 30 / 7%);
@@ -17,6 +18,7 @@
 
 @media (max-width: 40rem) {
   .main-panel {
-    padding-inline: 0;
+    position: relative;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
   }
 }

@@ -1,14 +1,9 @@
 <script setup>
-import MainPanel from './components/MainPanel.vue'
-import BalanceSummary from './components/BalanceSummary.vue'
-import MovementPanel from './components/MovementPanel.vue'
+import DashboardView from './components/dashboard/DashboardView.vue'
 </script>
 
 <template>
-  <main class="app-background">
-    <MainPanel>
-      <BalanceSummary />
-      <MovementPanel />
-    </MainPanel>
-  </main>
+  <div class="app-background">
+    <DashboardView />
+  </div>
 </template>

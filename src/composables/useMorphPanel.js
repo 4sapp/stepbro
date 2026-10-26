@@ -1,20 +1,18 @@
 import { onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
+import { popoverEase, fadeEase, blurEase } from './motionProfiles'
 
-// Ritmo común para todos los paneles; tiempos expresados en segundos.
+// El blur vive en la capa completa para incluir título, icono y cuerpo.
 const motion = {
-  duration: 0.56,
-  ease: 'power3.out',
-  contentAt: 0.2,
-  contentDuration: 0.22,
-  // Desenfoque solo del contenido que entra y sale, no del texto compartido.
-  contentBlur: 5,
-  // 1 conserva la duración de apertura; menos de 1 alarga el regreso.
-  closeSpeed: 1,
+  duration: 0.7,
+  contentBlur: 8,
+  closeDuration: 0.5,
+  closeBlur: 32,
 }
 
 export function useMorphPanel() {
   const dialog = ref(null)
+  const phase = ref('closed')
   let timeline
   let trigger
   let previousOverflow
@@ -23,20 +21,43 @@ export function useMorphPanel() {
 
   function close() {
     if (!dialog.value?.open || !timeline) return
+    if (phase.value === 'closing') return
+    phase.value = 'closing'
     if (reduced) {
       finishClose()
       return
     }
-    // Invertir conserva la continuidad si se cierra durante la apertura.
-    timeline.timeScale(motion.closeSpeed).reverse()
+    timeline.kill()
+    const panel = dialog.value
+    const origin = trigger.getBoundingClientRect()
+    const box = panel.getBoundingClientRect()
+    const layout = panel.querySelector('[data-panel-layout]')
+    // El panel puede venir de un gesto: parte de su posición visual actual.
+    gsap.to(panel, { x: 0, y: 0, scale: 1, duration: motion.closeDuration, ease: popoverEase, overwrite: 'auto' })
+    const baseLeft = box.left - Number(gsap.getProperty(panel, 'x')) - (panel.offsetWidth - box.width) / 2
+    const baseTop = box.top - Number(gsap.getProperty(panel, 'y')) - (panel.offsetHeight - box.height) / 2
+    timeline = gsap.timeline({ onComplete: finishClose })
+    timeline.to(surface, {
+      x: origin.left - baseLeft,
+      y: origin.top - baseTop,
+      width: origin.width, height: origin.height,
+      borderRadius: getComputedStyle(trigger).borderRadius,
+      backgroundColor: getComputedStyle(trigger).backgroundColor,
+      duration: motion.closeDuration, ease: popoverEase,
+    }, 0)
+    timeline.to(layout, { filter: `blur(${motion.closeBlur}px)`, duration: motion.closeDuration, ease: blurEase }, 0)
+    timeline.to(layout, { opacity: 0, duration: motion.closeDuration, ease: fadeEase }, 0)
+    timeline.to(panel, { '--backdrop-opacity': 0, duration: motion.closeDuration, ease: 'power3.in' }, 0)
   }
 
   function finishClose() {
     dialog.value.close()
+    phase.value = 'closed'
+    gsap.killTweensOf(dialog.value, 'x,y,scale')
     document.body.style.overflow = previousOverflow
     gsap.set(dialog.value, { clearProps: 'all' })
     gsap.set(surface, { clearProps: 'all' })
-    gsap.set(dialog.value.querySelectorAll('[data-shared-item], [data-panel-content]'), { clearProps: 'all' })
+    gsap.set(dialog.value.querySelectorAll('[data-shared-item], [data-panel-content], [data-panel-layout]'), { clearProps: 'all' })
     trigger.style.visibility = ''
     trigger.focus({ preventScroll: true })
     timeline?.kill()
@@ -46,6 +67,7 @@ export function useMorphPanel() {
   function open(event) {
     const panel = dialog.value
     if (panel.open) return
+    phase.value = 'opening'
     trigger = event.currentTarget
     const start = trigger.getBoundingClientRect()
 
@@ -64,8 +86,8 @@ export function useMorphPanel() {
 
     // Duración y curva compartidas: ajusta aquí el carácter del movimiento.
     timeline = gsap.timeline({
-      defaults: { duration: reduced ? 0 : motion.duration, ease: motion.ease },
-      onReverseComplete: finishClose,
+      defaults: { duration: reduced ? 0 : motion.duration, ease: popoverEase },
+      onComplete: () => { phase.value = 'open' },
     })
 
     // El diálogo mantiene su geometría. Solo la superficie cambia de tamaño.
@@ -100,24 +122,25 @@ export function useMorphPanel() {
       }, { x: 0, y: 0 }, 0)
     })
 
+    // El mismo desenfoque incluye las piezas compartidas; antes el título
+    // permanecía nítido y ocultaba casi todo el efecto de la transición.
+    timeline.fromTo(panel.querySelector('[data-panel-layout]'), {
+      filter: reduced ? 'none' : `blur(${motion.contentBlur}px)`,
+    }, { filter: 'blur(0px)', duration: reduced ? 0 : motion.duration, ease: popoverEase }, 0)
     timeline.fromTo(panel.querySelectorAll('[data-panel-content]'), {
       opacity: 0,
-      filter: reduced ? 'blur(0px)' : `blur(${motion.contentBlur}px)`,
-    }, {
-      opacity: 1,
-      filter: 'blur(0px)',
-      duration: reduced ? 0 : motion.contentDuration,
-      ease: 'power1.inOut',
-    }, reduced ? 0 : motion.contentAt)
+    }, { opacity: 1, duration: reduced ? 0 : motion.duration, ease: popoverEase }, 0)
+
   }
 
   onBeforeUnmount(() => {
     timeline?.kill()
+    if (dialog.value) gsap.killTweensOf(dialog.value, 'x,y,scale')
     if (dialog.value?.open) {
       dialog.value.close()
       document.body.style.overflow = previousOverflow
     }
   })
 
-  return { dialog, open, close }
+  return { dialog, phase, open, close }
 }

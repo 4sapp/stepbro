@@ -34,6 +34,15 @@
 
 .movement-panel__layout {
   position: relative;
+  min-block-size: 100%;
+  /* El cuerpo participa en el gesto; data-no-drag excluye controles especiales. */
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.movement-panel__layout[data-dragging] {
+  cursor: grabbing;
 }
 
 .movement-panel__header {
@@ -44,6 +53,23 @@
   padding: 1.25rem;
   min-block-size: 5.25rem;
   white-space: nowrap;
+}
+
+.movement-panel__grip {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: calc(50% - 1rem);
+  inline-size: 2rem;
+  block-size: 0.2rem;
+  border-radius: 1rem;
+  background: rgb(0 0 0 / 12%);
+  pointer-events: none;
+}
+
+.movement-panel__hint {
+  margin-block-start: 1.5rem;
+  font-size: 0.8125rem;
+  color: #898681;
 }
 
 .movement-panel__header h2 {

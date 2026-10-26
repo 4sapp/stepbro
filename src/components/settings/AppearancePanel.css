@@ -1,0 +1,118 @@
+.appearance-panel {
+  position: fixed;
+  inset: auto;
+  inline-size: min(25rem, calc(100vw - 1.5rem));
+  max-block-size: calc(100svh - 1.5rem);
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2.5rem;
+  background: #faf9fc;
+  color: #29262e;
+  font-family: var(--font-sans);
+  overflow: auto;
+}
+
+.appearance-panel::backdrop {
+  background: rgb(30 25 35 / calc(16% * var(--dialog-backdrop-opacity, 1)));
+}
+
+.appearance-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 0.5rem;
+}
+
+.appearance-panel h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.appearance-panel__close {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #88818f;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.appearance-panel__palette {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-block: 2rem 2.5rem;
+}
+
+.appearance-panel__swatch {
+  aspect-ratio: 1;
+  border: 4px solid color-mix(in srgb, var(--swatch) 80%, #000);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 80% 40%, rgb(255 255 255 / 20%), transparent 75%), var(--swatch);
+  cursor: pointer;
+}
+
+.appearance-panel__swatch--black {
+  border-radius: 1rem;
+}
+
+.appearance-panel__swatch[aria-pressed='true'] {
+  outline: 2px solid #8e8796;
+  outline-offset: 2px;
+}
+
+.appearance-panel__navigation {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 1rem;
+  border: 0;
+}
+
+.appearance-panel__navigation legend {
+  margin-block-end: 1rem;
+  color: #817b88;
+  font-size: 0.9375rem;
+}
+
+.appearance-panel__navigation button {
+  grid-column: span 2;
+  min-block-size: 3.25rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: #eeecf1;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.appearance-panel__navigation button:nth-last-child(-n+2) {
+  grid-column: span 3;
+}
+
+.appearance-panel__navigation button[aria-pressed='true'] {
+  background: #171519;
+  color: #fff;
+}
+
+.appearance-panel__navigation button:disabled {
+  color: #a59eac;
+}
+
+.appearance-panel__body {
+  box-sizing: border-box;
+  padding: 1.5rem 1rem 2rem;
+}
+
+.appearance-panel__header {
+  touch-action: none;
+  user-select: none;
+}

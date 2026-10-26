@@ -1,9 +1,15 @@
 <script setup>
 import TouchButton from './TouchButton.vue'
 import { useMorphPanel } from '../composables/useMorphPanel'
+import { useDragDismiss } from '../composables/useDragDismiss'
 import './MovementPanel.css'
 
-const { dialog, open, close } = useMorphPanel()
+const { dialog, phase, open, close } = useMorphPanel()
+const drag = useDragDismiss({
+  target: dialog,
+  canDrag: () => phase.value === 'open',
+  dismiss: close,
+})
 
 function closeFromBackdrop(event) {
   if (event.target !== dialog.value) return
@@ -28,14 +34,25 @@ function closeFromBackdrop(event) {
       @click="closeFromBackdrop"
     >
       <div class="movement-panel__surface" data-panel-surface aria-hidden="true" />
-      <div class="movement-panel__layout" data-panel-layout>
+      <div
+        class="movement-panel__layout"
+        data-panel-layout
+        @pointerdown="drag.start"
+        @pointermove="drag.move"
+        @pointerup="drag.end"
+        @pointercancel="drag.cancel"
+        @lostpointercapture="drag.cancel"
+        @wheel="drag.wheel"
+      >
         <header class="movement-panel__header">
+          <span class="movement-panel__grip" data-panel-content aria-hidden="true" />
           <span class="movement-panel__icon" data-shared-item="icon" aria-hidden="true">+</span>
           <h2 id="movement-title" data-shared-item="title">Movimiento</h2>
           <button class="movement-panel__close" type="button" aria-label="Cerrar" data-panel-content @click="close">×</button>
         </header>
         <div class="movement-panel__body" data-panel-content>
           <p>Un nuevo movimiento empieza aquí.</p>
+          <p class="movement-panel__hint">Arrastra el panel y suelta para cerrar.</p>
           <!-- Siguiente paso: construir los campos, uno a uno. -->
         </div>
       </div>

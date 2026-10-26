@@ -1,0 +1,208 @@
+.settings-panel {
+  /* Medidas del panel; la ilustración se reemplaza sin tocar su estructura. */
+  inline-size: min(50rem, calc(100vw - 2rem));
+  max-inline-size: none;
+  max-block-size: calc(100svh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: 2rem;
+  overflow: auto;
+  background: #faf9fc;
+  color: #29262e;
+  font-family: var(--font-sans);
+}
+
+.settings-panel::backdrop {
+  background: rgb(30 25 35 / calc(18% * var(--dialog-backdrop-opacity, 1)));
+}
+
+.settings-panel__layout {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  min-block-size: min(38rem, calc(100svh - 2rem));
+}
+
+.settings-panel__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  background: #f4f2f7;
+}
+
+.settings-panel__nav h2 {
+  margin: 0.5rem 0.75rem 1.5rem;
+  color: #928b9b;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.settings-panel__nav button {
+  min-block-size: 2.75rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 1.5rem;
+  background: transparent;
+  color: #89818f;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.settings-panel__nav button[aria-current='page'] {
+  background: #fff;
+  color: #36303f;
+}
+
+.settings-panel__content {
+  position: relative;
+  min-inline-size: 0;
+  padding: 1rem;
+}
+
+.settings-panel__close {
+  position: absolute;
+  inset-block-start: 1.75rem;
+  inset-inline-end: 1.75rem;
+  z-index: 1;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 80%);
+  color: #48404e;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.account-surface {
+  position: relative;
+  display: flex;
+  align-items: end;
+  min-block-size: 26rem;
+  padding: 2rem;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: #efc1e5;
+  background-image: radial-gradient(ellipse at 5% 15%, #ff9d67 0, transparent 55%), radial-gradient(ellipse at 95% 90%, #eff77a 0, transparent 65%);
+}
+
+.account-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+  background-image: radial-gradient(#fff 1px, transparent 1px);
+  background-size: 5px 5px;
+  mask-image: linear-gradient(#000, transparent 85%);
+}
+
+.account-surface__copy {
+  position: relative;
+  color: #493044;
+}
+
+.account-surface__copy span {
+  font-size: 0.9375rem;
+}
+
+.account-surface h3 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+}
+
+.settings-account {
+  display: flex;
+  gap: 3rem;
+  margin: 1.75rem 1rem 0.75rem;
+}
+
+.settings-account dt {
+  color: #928b99;
+  font-size: 0.75rem;
+}
+
+.settings-account dd {
+  margin: 0.3rem 0 0;
+  font-size: 0.875rem;
+}
+
+.settings-section {
+  padding: 5rem 1.5rem 2rem;
+}
+
+.settings-section__eyebrow {
+  color: #928b99;
+  font-size: 0.8125rem;
+}
+
+.settings-section h3 {
+  margin-block: 1rem;
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.settings-section > p:last-of-type {
+  color: #8a8192;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 40rem) {
+  .settings-panel__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-panel__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-inline-end: 3.5rem;
+  }
+
+  .settings-panel__nav h2 {
+    display: none;
+  }
+
+  .settings-panel__nav button {
+    padding-inline: 0.75rem;
+  }
+
+  .settings-panel__content {
+    position: static;
+  }
+
+  .settings-panel__close {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-end: 1rem;
+  }
+
+  .account-surface {
+    min-block-size: 18rem;
+  }
+}
+
+.settings-panel__nav,
+.account-surface {
+  touch-action: none;
+  user-select: none;
+}
+
+@media (max-width: 42.499rem) {
+  .settings-panel {
+    inline-size: 100vw;
+    block-size: 100svh;
+    max-block-size: 100svh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .settings-panel__layout {
+    min-block-size: 100svh;
+  }
+}
