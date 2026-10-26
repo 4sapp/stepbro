@@ -1,0 +1,27 @@
+/* La sombra se anima por sí misma: no depende de la escala ni la opacidad
+   de la ventana. Se apaga antes de retirar el diálogo de la capa superior. */
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)::backdrop {
+  background: rgb(30 25 35 / 18%);
+  opacity: 0;
+  transition: opacity 450ms cubic-bezier(.22, .61, .36, 1);
+}
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[open]::backdrop {
+  opacity: 1;
+}
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[data-backdrop-closing]::backdrop {
+  opacity: 0;
+}
+@starting-style {
+  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[open]::backdrop {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)::backdrop {
+    transition: none;
+  }
+}
+
+dialog:is(.movement-panel, .appearance-panel)::backdrop {
+  background: rgb(30 25 35 / 16%);
+}

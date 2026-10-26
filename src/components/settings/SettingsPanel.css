@@ -12,7 +12,6 @@
   color: var(--theme-ink);
   font-family: var(--font-sans);
 }
-.settings-panel::backdrop { background: rgb(30 25 35 / calc(18% * var(--dialog-backdrop-opacity, 1))); }
 .settings-panel__layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); min-block-size: var(--settings-height); }
 .settings-panel__nav { display: flex; flex-direction: column; gap: 0; padding: 2.5rem 1rem; align-items: stretch; }
 .settings-panel__nav button { display: flex; align-items: center; gap: 0.75rem; min-block-size: 2.75rem; padding: 0.65rem 1.25rem; border: 1px solid transparent; border-radius: 2rem; background: transparent; color: #89818f; font: inherit; font-size: 0.9375rem; text-align: start; cursor: pointer; transition: background 180ms, color 180ms; }

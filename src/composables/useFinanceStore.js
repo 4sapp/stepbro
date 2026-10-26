@@ -32,9 +32,9 @@ function load() {
     const value = JSON.parse(raw)
     if (!Array.isArray(value.accounts) || !value.accounts.length || !Array.isArray(value.transactions)
       || !value.accounts.every(a => typeof a.id === 'string' && typeof a.name === 'string' && Number.isSafeInteger(a.opening))
-      || !value.transactions.every(t => ['income', 'expense', 'transfer'].includes(t.type) && Number.isSafeInteger(t.amount) && t.amount > 0 && typeof t.description === 'string' && validDate(t.date) && value.accounts.some(a => a.id === t.accountId))) throw new Error()
+      || !value.transactions.every(t => ['income', 'expense', 'transfer'].includes(t.type) && Number.isSafeInteger(t.amount) && t.amount > 0 && typeof t.description === 'string' && validDate(t.date) && (!t.accountId || value.accounts.some(a => a.id === t.accountId)))) throw new Error()
     // Migra las primeras cuentas sin perder sus movimientos ni el saldo inicial.
-    return { ...value, transactions: value.transactions.map(t => ({ currency: value.accounts.find(a => a.id === t.accountId)?.currency || 'USD', ...t })), accounts: value.accounts.map(a => ({ type: 'cash', currency: 'USD', symbol: '💵', ...a })), categories: Array.isArray(value.categories) ? value.categories : defaults.map(c => ({ ...c })), intentions: Array.isArray(value.intentions) ? value.intentions : [] }
+    return { ...value, transactions: value.transactions.map(t => ({ currency: value.accounts.find(a => a.id === t.accountId)?.currency || t.currency || 'USD', ...t })), accounts: value.accounts.map(a => ({ type: 'cash', currency: 'USD', symbol: '💵', ...a })), categories: Array.isArray(value.categories) ? value.categories : defaults.map(c => ({ ...c })), intentions: Array.isArray(value.intentions) ? value.intentions : [] }
   } catch { error.value = 'No se pudieron leer los datos guardados en este navegador.'; return initial() }
 }
 const state = ref(load())
@@ -43,7 +43,8 @@ const accounts = computed(() => state.value.accounts.map(a => ({ ...a, balance: 
 const categories = computed(() => state.value.categories)
 const intentions = computed(() => [...state.value.intentions].sort((a, b) => a.date.localeCompare(b.date)))
 const transactions = computed(() => [...state.value.transactions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt))
-const balance = computed(() => accounts.value.filter(a => a.currency === activeCurrency.value).reduce((sum, a) => sum + a.balance, 0))
+const unassignedBalance = computed(() => transactions.value.filter(t => !t.accountId && t.currency === activeCurrency.value).reduce((sum, t) => sum + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0))
+const balance = computed(() => accounts.value.filter(a => a.currency === activeCurrency.value).reduce((sum, a) => sum + a.balance, 0) + unassignedBalance.value)
 const monthIncome = computed(() => transactions.value.filter(t => t.type === 'income' && t.currency === activeCurrency.value && t.date.startsWith(localDate().slice(0, 7))).reduce((n, t) => n + t.amount, 0))
 const monthExpense = computed(() => transactions.value.filter(t => t.type === 'expense' && t.currency === activeCurrency.value && t.date.startsWith(localDate().slice(0, 7))).reduce((n, t) => n + t.amount, 0))
 export const money = (cents, currency = 'USD') => new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
@@ -55,23 +56,24 @@ function commit(next) {
 }
 const requireName = (name, max = 120) => { if (!String(name || '').trim()) throw new Error('Escribe un nombre o descripción.'); return name.trim().slice(0, max) }
 function movementData(input) {
-  const account = state.value.accounts.find(a => a.id === input.accountId)
-  if (!account) throw new Error('Selecciona una cuenta.')
+  const account = input.accountId ? state.value.accounts.find(a => a.id === input.accountId) : null
+  if ((input.accountId || input.type === 'transfer') && !account) throw new Error('Selecciona una cuenta.')
   const amount = toCents(input.amount)
   if (!amount) throw new Error('El importe debe ser mayor que cero.')
   if (!['income', 'expense', 'transfer'].includes(input.type)) throw new Error('Selecciona un tipo de movimiento.')
   if (!validDate(input.date)) throw new Error('Selecciona una fecha válida.')
   if (input.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) throw new Error('La hora no es válida.')
   if (input.category && !categories.value.some(c => c.id === input.category)) throw new Error('Selecciona una categoría válida.')
+  const currency = account?.currency || (currencies.includes(input.currency) ? input.currency : activeCurrency.value)
   let destinationAmount, destinationCurrency
   if (input.type === 'transfer') {
     const destination = state.value.accounts.find(a => a.id === input.destinationId)
     if (!destination || destination.id === account.id) throw new Error('Selecciona una cuenta de destino diferente.')
     destinationCurrency = destination.currency
-    destinationAmount = destination.currency === account.currency ? amount : toCents(input.destinationAmount)
+    destinationAmount = destination.currency === currency ? amount : toCents(input.destinationAmount)
     if (!destinationAmount) throw new Error('Indica cuánto recibe la cuenta de destino.')
   }
-  return { type: input.type, amount, accountId: account.id, currency: account.currency, description: requireName(input.description), category: input.category || '', date: input.date, time: input.time || '', note: String(input.note || '').slice(0, 1000), destinationId: input.type === 'transfer' ? input.destinationId : '', destinationAmount, destinationCurrency }
+  return { type: input.type, amount, accountId: account?.id || '', currency, description: requireName(input.description), category: input.category || '', date: input.date, time: input.time || '', note: String(input.note || '').slice(0, 1000), destinationId: input.type === 'transfer' ? input.destinationId : '', destinationAmount, destinationCurrency }
 }
 function saveMovement(input, id) {
   const existing = id && state.value.transactions.find(t => t.id === id)

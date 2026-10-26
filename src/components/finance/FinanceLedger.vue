@@ -36,7 +36,7 @@ const periodStart = computed(() => filter.year ? `${filter.year}-${filter.month 
 const periodEnd = computed(() => filter.year ? filter.month ? `${filter.year}-${filter.month}-${new Date(Number(filter.year), Number(filter.month), 0).getDate()}` : `${filter.year}-12-31` : '')
 const availableCurrencies = computed(() => [...new Set(accounts.value.map(a => a.currency))])
 const displayedAmount = item => item.type === 'transfer' && item.destinationCurrency === activeCurrency.value ? item.destinationAmount : item.amount
-const accountName = id => accounts.value.find(a => a.id === id)?.name || 'Cuenta'
+const accountName = id => accounts.value.find(a => a.id === id)?.name || 'Sin cuenta'
 const dateLabel = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T12:00:00`))
 const filtered = computed(() => transactions.value.filter(t => ((t.currency || 'USD') === activeCurrency.value || (t.type === 'transfer' && t.destinationCurrency === activeCurrency.value))
   && (!filter.type || t.type === filter.type) && (!filter.account || t.accountId === filter.account || t.destinationId === filter.account)

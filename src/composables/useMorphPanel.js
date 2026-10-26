@@ -1,155 +1,155 @@
 import { onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
-import { popoverEase, fadeEase, blurEase } from './motionProfiles'
+import { Flip } from 'gsap/Flip'
 
-// El blur vive en la capa completa para incluir título, icono y cuerpo.
-const motion = {
-  duration: 0.7,
-  contentBlur: 8,
-  closeDuration: 0.5,
-  closeBlur: 32,
-}
+gsap.registerPlugin(Flip)
+import { popoverEase, fadeEase, blurEase } from './motionProfiles'
 
 export function useMorphPanel() {
   const dialog = ref(null)
   const phase = ref('closed')
-  let timeline
-  let trigger
-  let lastOrigin
-  let previousOverflow
-  let surface
+  let timeline, trigger, lastOrigin, previousOverflow, surface, layout
   let reduced = false
+  const flipId = `movement-${Math.random().toString(36).slice(2)}`
+  let triggerOpacity = ''
 
-  function close() {
-    if (!dialog.value?.open || !timeline) return
-    if (phase.value === 'closing') return
-    phase.value = 'closing'
-    if (reduced) {
-      finishClose()
-      return
-    }
-    timeline.kill()
-    const panel = dialog.value
-    const origin = trigger.isConnected ? trigger.getBoundingClientRect() : lastOrigin
-    const box = panel.getBoundingClientRect()
-    const layout = panel.querySelector('[data-panel-layout]')
-    // El panel puede venir de un gesto: parte de su posición visual actual.
-    gsap.to(panel, { x: 0, y: 0, scale: 1, duration: motion.closeDuration, ease: popoverEase, overwrite: 'auto' })
-    const baseLeft = box.left - Number(gsap.getProperty(panel, 'x')) - (panel.offsetWidth - box.width) / 2
-    const baseTop = box.top - Number(gsap.getProperty(panel, 'y')) - (panel.offsetHeight - box.height) / 2
-    timeline = gsap.timeline({ onComplete: finishClose })
-    timeline.to(surface, {
-      x: origin.left - baseLeft,
-      y: origin.top - baseTop,
-      width: origin.width, height: origin.height,
-      borderRadius: getComputedStyle(trigger).borderRadius,
-      backgroundColor: getComputedStyle(trigger).backgroundColor,
-      duration: motion.closeDuration, ease: popoverEase,
-    }, 0)
-    timeline.to(layout, { filter: `blur(${motion.closeBlur}px)`, duration: motion.closeDuration, ease: blurEase }, 0)
-    timeline.to(layout, { opacity: 0, duration: motion.closeDuration, ease: fadeEase }, 0)
-    timeline.to(panel, { '--backdrop-opacity': 0, duration: motion.closeDuration, ease: 'power3.in' }, 0)
+  function originState() {
+    const previous = trigger.getAttribute('data-flip-id')
+    trigger.setAttribute('data-flip-id', flipId)
+    const state = Flip.getState(trigger)
+    if (previous === null) trigger.removeAttribute('data-flip-id')
+    else trigger.setAttribute('data-flip-id', previous)
+    return state
   }
 
+  function radius(node) {
+    const value = getComputedStyle(node).borderTopLeftRadius
+    const box = node.getBoundingClientRect()
+    return `${value.includes('%') ? parseFloat(value) * Math.min(box.width, box.height) / 100 : parseFloat(value) || 0}px`
+  }
+
+
+  function placePanel() {
+    const panel = dialog.value
+    const origin = trigger.isConnected ? trigger.getBoundingClientRect() : lastOrigin
+    const width = panel.offsetWidth
+    const height = panel.offsetHeight
+    panel.style.inset = 'auto'
+    panel.style.margin = '0'
+    gsap.set(panel, {
+      left: Math.round(Math.max(innerWidth < 680 ? 0 : 8, Math.min(origin.left + origin.width / 2 - width / 2, innerWidth - width - (innerWidth < 680 ? 0 : 8)))),
+      top: Math.round(Math.max(innerWidth < 680 ? 0 : 8, Math.min(origin.top + origin.height / 2 - height / 2, innerHeight - height - (innerWidth < 680 ? 0 : 8)))),
+    })
+  }
+  function resize() {
+    if (phase.value === 'open') placePanel()
+  }
+  window.addEventListener('resize', resize)
+
   function finishClose() {
-    dialog.value.close()
-    phase.value = 'closed'
-    gsap.killTweensOf(dialog.value, 'x,y,scale')
-    document.body.style.overflow = previousOverflow
-    gsap.set(dialog.value, { clearProps: 'all' })
-    gsap.set(surface, { clearProps: 'all' })
-    gsap.set(dialog.value.querySelectorAll('[data-shared-item], [data-panel-content], [data-panel-layout]'), { clearProps: 'all' })
-    trigger.style.visibility = ''
-    trigger.focus({ preventScroll: true })
     timeline?.kill()
+    gsap.killTweensOf(dialog.value)
+    dialog.value.close()
+    dialog.value.removeAttribute('data-backdrop-closing')
+    gsap.set([dialog.value, surface, layout], { clearProps: 'all' })
+    document.body.style.overflow = previousOverflow
+    trigger.style.opacity = triggerOpacity
+    if (trigger.isConnected) trigger.focus({ preventScroll: true })
+    phase.value = 'closed'
     timeline = null
+  }
+
+  function close() {
+    if (!dialog.value?.open || phase.value === 'closing') return
+    phase.value = 'closing'
+    dialog.value.setAttribute('data-backdrop-closing', '')
+    timeline?.kill()
+    if (reduced) { finishClose(); return }
+    const panel = dialog.value
+    const state = originState()
+    panel.style.overflow = 'hidden'
+    layout.style.overflow = 'hidden'
+    panel.style.pointerEvents = 'none'
+    timeline = gsap.timeline()
+    timeline.add(Flip.to(state, { targets: panel, duration: 0.5, scale: false, absolute: false, ease: popoverEase }), 0)
+    timeline.to(panel, { borderRadius: radius(trigger), duration: 0.5, ease: popoverEase }, 0)
+    timeline.to(surface, { backgroundColor: getComputedStyle(trigger).backgroundColor, duration: 0.5, ease: popoverEase }, 0)
+    // La trayectoria del contenido dura 2 s en el original; se desvanece
+    // durante los primeros 0.5 s mientras la superficie llega antes al botón.
+    timeline.to(layout, {
+      x: 0, y: 0, scaleX: lastOrigin.width / layout.offsetWidth,
+      scaleY: lastOrigin.height / layout.offsetHeight,
+      duration: 2, ease: popoverEase,
+    }, 0)
+    timeline.to(layout, { borderRadius: '400px', duration: 0.5, ease: fadeEase }, 0)
+    timeline.to(layout, { filter: 'blur(32px)', duration: 0.5, ease: blurEase }, 0)
+    timeline.to(layout, { opacity: 0, duration: 0.5, ease: fadeEase }, 0)
+    timeline.to(trigger, { opacity: triggerOpacity || 1, duration: 0.3, ease: 'power2.out' }, 0.2)
+    timeline.call(finishClose, [], 0.5)
   }
 
   function open(event) {
     const panel = dialog.value
     if (panel.open) return
-    phase.value = 'opening'
     trigger = event.currentTarget
+    triggerOpacity = trigger.style.opacity
     const start = trigger.getBoundingClientRect()
     lastOrigin = start
-
-    panel.showModal()
+    reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     previousOverflow = document.body.style.overflow
+    panel.removeAttribute('data-backdrop-closing')
+    panel.showModal()
     document.body.style.overflow = 'hidden'
-    const end = panel.getBoundingClientRect()
     surface = panel.querySelector('[data-panel-surface]')
-    const shared = [...panel.querySelectorAll('[data-shared-item]')].flatMap(target => {
-      const source = trigger.querySelector(`[data-shared-item="${target.dataset.sharedItem}"]`)
-      if (!source || source.classList.contains('visually-hidden')) return []
-      return [{ target, sourceBox: source.getBoundingClientRect(), targetBox: target.getBoundingClientRect() }]
-    })
-    trigger.style.visibility = 'hidden'
-    reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    // Duración y curva compartidas: ajusta aquí el carácter del movimiento.
-    timeline = gsap.timeline({
-      defaults: { duration: reduced ? 0 : motion.duration, ease: popoverEase },
-      onComplete: () => {
-        phase.value = 'open'
-        // La superficie vuelve a seguir la altura natural del formulario.
-        // También elimina capas de filtro que deforman el scroll nativo.
-        gsap.set(surface, { clearProps: 'all' })
-        gsap.set(panel.querySelector('[data-panel-layout]'), { clearProps: 'filter' })
-        gsap.set(panel.querySelectorAll('[data-shared-item]'), { clearProps: 'transform' })
-      },
-    })
-
-    // El diálogo mantiene su geometría. Solo la superficie cambia de tamaño.
-    // Así el navegador no recentra ni redistribuye el texto en cada fotograma.
-    timeline.fromTo(surface, {
-      x: start.left - end.left,
-      y: start.top - end.top,
-      width: start.width,
-      height: start.height,
-      borderRadius: getComputedStyle(trigger).borderRadius,
-      backgroundColor: getComputedStyle(trigger).backgroundColor,
-    }, {
-      x: 0, y: 0,
-      width: end.width,
-      height: end.height,
-      borderRadius: getComputedStyle(panel).borderRadius,
-      backgroundColor: getComputedStyle(surface).backgroundColor,
+    layout = panel.querySelector('[data-panel-layout]')
+    panel.setAttribute('data-flip-id', flipId)
+    placePanel()
+    const state = originState()
+    const mobile = innerWidth < 680
+    const targetRadius = getComputedStyle(panel).borderTopLeftRadius
+    const targetColor = getComputedStyle(surface).backgroundColor
+    const height = panel.offsetHeight
+    const width = panel.offsetWidth
+    // El contenido mantiene sus medidas finales dentro de la superficie
+    // que cambia de tamaño; así el recorte sigue el morph en cada fotograma.
+    gsap.set(layout, { width, height, minWidth: width, minHeight: height, overflow: 'hidden' })
+    panel.style.overflow = 'hidden'
+    phase.value = 'opening'
+    const duration = reduced ? 0 : 0.7
+    timeline = gsap.timeline({ onComplete() {
+      phase.value = 'open'
+      gsap.set(panel, { clearProps: 'width,height,minWidth,maxWidth,minHeight,maxHeight,transform,overflow,borderRadius' })
+      gsap.set(surface, { clearProps: 'all' })
+      gsap.set(layout, { clearProps: 'all' })
+      placePanel()
+    } })
+    timeline.to(trigger, { opacity: 0, duration: reduced ? 0 : 0.08 }, 0)
+    timeline.add(Flip.from(state, { targets: panel, duration, scale: false, absolute: false, ease: popoverEase }), 0)
+    timeline.fromTo(panel, { borderRadius: radius(trigger) }, {
+      borderRadius: targetRadius, duration: reduced ? 0 : mobile ? 1.2 : 0.3,
+      ease: mobile ? 'power2.inOut' : popoverEase,
     }, 0)
-
-    timeline.fromTo(panel, {
-      color: getComputedStyle(trigger).color, '--backdrop-opacity': 0,
-    }, {
-      color: getComputedStyle(panel).color, '--backdrop-opacity': 0.16,
-      duration: reduced ? 0 : 0.32,
+    timeline.fromTo(surface, { backgroundColor: getComputedStyle(trigger).backgroundColor }, {
+      backgroundColor: targetColor, duration: reduced ? 0 : 0.3, ease: popoverEase,
     }, 0)
-
-    // Empareja las piezas por nombre. El atributo es una convención propia.
-    shared.forEach(({ target, sourceBox, targetBox }) => {
-      timeline.fromTo(target, {
-        x: sourceBox.left - targetBox.left,
-        y: sourceBox.top - targetBox.top,
-      }, { x: 0, y: 0 }, 0)
-    })
-
-    // El mismo desenfoque incluye las piezas compartidas; antes el título
-    // permanecía nítido y ocultaba casi todo el efecto de la transición.
-    timeline.fromTo(panel.querySelector('[data-panel-layout]'), {
-      filter: reduced ? 'none' : `blur(${motion.contentBlur}px)`,
-    }, { filter: 'blur(0px)', duration: reduced ? 0 : motion.duration, ease: popoverEase }, 0)
-    timeline.fromTo(panel.querySelectorAll('[data-panel-content]'), {
-      opacity: 0,
-    }, { opacity: 1, duration: reduced ? 0 : motion.duration, ease: popoverEase }, 0)
-
+    // La superficie ya se desplaza desde el botón. El contenido solo escala
+    // en sus coordenadas locales: otro Flip aquí aplica dos veces el origen.
+    timeline.fromTo(layout, {
+      x: 0, y: 0, scaleX: start.width / width, scaleY: start.height / height,
+    }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration, ease: popoverEase }, 0)
+    timeline.fromTo(layout, { opacity: 0, filter: reduced ? 'none' : 'blur(8px)' }, {
+      opacity: 1, filter: 'blur(0px)', duration, ease: popoverEase,
+    }, 0)
   }
 
   onBeforeUnmount(() => {
+    window.removeEventListener('resize', resize)
     timeline?.kill()
-    if (dialog.value) gsap.killTweensOf(dialog.value, 'x,y,scale')
+    if (trigger) trigger.style.opacity = triggerOpacity
     if (dialog.value?.open) {
       dialog.value.close()
       document.body.style.overflow = previousOverflow
     }
   })
-
   return { dialog, phase, open, close }
 }

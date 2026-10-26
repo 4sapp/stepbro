@@ -107,9 +107,6 @@
   font-family: var(--font-sans);
 }
 
-.finance-dialog::backdrop {
-  background: rgb(30 25 35 / calc(18% * var(--dialog-backdrop-opacity, 1)));
-}
 
 .finance-dialog__body {
   padding: 1.5rem;

@@ -45,6 +45,7 @@ function apply(id) {
     '--theme-container': blend(seed, '#ffffff', 0.24),
     '--theme-strong': blend(seed, '#151019', 0.32),
     '--theme-ink': blend(seed, '#211b27', 0.1),
+    '--theme-accent-ink': color.id === 'black' ? '#ffffff' : blend(seed, '#211b27', 0.1),
     '--theme-on-container': blend(seed, '#24132e', 0.22),
     '--theme-muted': blend(seed, '#736b7c', 0.18),
     '--theme-outline': blend(seed, '#ffffff', 0.18),

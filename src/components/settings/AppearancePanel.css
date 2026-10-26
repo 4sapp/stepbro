@@ -14,9 +14,6 @@
   overflow: auto;
 }
 
-.appearance-panel::backdrop {
-  background: rgb(30 25 35 / calc(16% * var(--dialog-backdrop-opacity, 1)));
-}
 
 .appearance-panel__header {
   display: flex;
