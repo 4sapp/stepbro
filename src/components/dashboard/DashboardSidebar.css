@@ -188,3 +188,23 @@
   block-size: 2.25rem;
   vertical-align: middle;
 }
+
+.dashboard-sidebar__brand-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dashboard-sidebar__brand-button:hover { color: var(--theme-on-container); }
+.dashboard-sidebar__brand-chevron { margin-inline-start: auto; font-size: 1.125rem; color: var(--theme-muted); }

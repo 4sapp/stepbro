@@ -9,6 +9,8 @@ gsap.registerPlugin(Flip)
 
 export function useOriginPopover() {
   const trigger = ref(null)
+  const activeTrigger = ref(null)
+  const source = () => activeTrigger.value || trigger.value
   const panel = ref(null)
   const expanded = ref(false)
   const { desktop, mobile: mobileLayout } = useNavigationLayout()
@@ -21,29 +23,31 @@ export function useOriginPopover() {
   let closing = false
   let ready = false
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
-  const label = () => trigger.value.querySelector('[data-origin-title]')
+  const label = () => source().querySelector('[data-origin-title]')
   const title = () => panel.value.querySelector('[data-origin-title]')
   const layout = () => panel.value.querySelector('.options-menu__layout')
   const surface = () => panel.value.querySelector('[data-origin-surface]')
   // GSAP conserva la unidad inicial: un botón al 50% debe convertirse a px
   // antes de animarse hacia las esquinas del panel.
   function triggerRadius() {
-    const value = getComputedStyle(trigger.value).borderTopLeftRadius
-    const box = trigger.value.getBoundingClientRect()
+    const value = getComputedStyle(source()).borderTopLeftRadius
+    const box = source().getBoundingClientRect()
     return `${value.includes('%') ? parseFloat(value) * Math.min(box.width, box.height) / 100 : parseFloat(value) || 0}px`
   }
   const drag = useDragDismiss({ target: panel, canDrag: () => ready && !closing && !document.querySelector('dialog[open]'), dismiss: close })
 
   function placePanel() {
-    const origin = trigger.value.getBoundingClientRect()
+    const origin = source().getBoundingClientRect()
     const mobile = innerWidth <= 640
     const docked = desktop.value === 'dock'
-    const sidebar = trigger.value.closest('.dashboard-sidebar').getBoundingClientRect()
+    const sidebar = source().closest('.dashboard-sidebar').getBoundingClientRect()
     // En la clásica el menú se mantiene dentro de su barra lateral.
     const width = !mobile && desktop.value === 'classic'
       ? Math.min(240, sidebar.width - 24) : Math.min(240, innerWidth - 24)
+    const upward = origin.top + origin.height / 2 > innerHeight / 2
     const bottom = Math.min(innerHeight - 12, origin.bottom + 8)
-    const maxHeight = Math.max(48, bottom - 12)
+    const start = Math.max(12, origin.top - 8)
+    const maxHeight = Math.max(48, upward ? bottom - 12 : innerHeight - start - 12)
     panel.value.style.setProperty('--options-max-height', `${maxHeight}px`)
     panel.value.style.width = `${width}px`
     const height = panel.value.offsetHeight
@@ -51,7 +55,7 @@ export function useOriginPopover() {
       mobile || docked ? origin.right + 8 - width : origin.left - 8,
       innerWidth - width - 12,
     ))
-    const top = Math.max(12, bottom - height)
+    const top = upward ? Math.max(12, bottom - height) : start
     gsap.set(panel.value, { left, top })
     return { origin, width, height, left, top }
   }
@@ -64,6 +68,8 @@ export function useOriginPopover() {
   }
 
   function visibleTriggerLabel() {
+    // Solo «Opciones» comparte texto con el panel. La marca se desvanece entera.
+    if (source() !== trigger.value) return false
     const node = label()
     const box = node.getBoundingClientRect()
     const style = getComputedStyle(node)
@@ -108,11 +114,12 @@ export function useOriginPopover() {
     restoreWord()
     panel.value.hidePopover()
     gsap.set([panel.value, surface(), layout()], { clearProps: 'all' })
-    gsap.set(trigger.value, { clearProps: 'opacity' })
+    gsap.set(source(), { clearProps: 'opacity' })
     expanded.value = false
     closing = false
     ready = false
-    trigger.value.focus({ preventScroll: true })
+    source().focus({ preventScroll: true })
+    activeTrigger.value = null
   }
 
   function close() {
@@ -128,7 +135,7 @@ export function useOriginPopover() {
     const contentState = Flip.getState(layout())
     gsap.set(panel.value, { x: 0, y: 0, scale: 1 })
     const bounds = panel.value.getBoundingClientRect()
-    const origin = trigger.value.getBoundingClientRect()
+    const origin = source().getBoundingClientRect()
     gsap.set(surface(), {
       x: origin.left - bounds.left, y: origin.top - bounds.top,
       width: origin.width, height: origin.height,
@@ -150,16 +157,17 @@ export function useOriginPopover() {
       scale: true, absolute: true, ease: popoverEase,
     }), 0)
     timeline.to(surface(), {
-      backgroundColor: getComputedStyle(trigger.value).backgroundColor,
+      backgroundColor: getComputedStyle(source()).backgroundColor,
       duration: 0.5, ease: popoverEase,
     }, 0)
     timeline.to(surface(), { opacity: 0, duration: 0.5, ease: 'power3.in' }, 0)
-    timeline.to(trigger.value, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.2)
+    timeline.to(source(), { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.2)
     timeline.call(finishClose, [], 0.5)
   }
 
-  function toggle() {
+  function toggle(event) {
     if (expanded.value) { close(); return }
+    activeTrigger.value = event?.currentTarget || trigger.value
     panel.value.showPopover()
     expanded.value = true
     const { origin, width, height, left, top } = placePanel()
@@ -175,7 +183,7 @@ export function useOriginPopover() {
     gsap.set(layout(), { x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const duration = reduced() ? 0 : 0.7
     timeline = gsap.timeline({ onComplete: () => { restoreWord(); gsap.set(surface(), { clearProps: 'borderRadius' }); ready = true } })
-    timeline.to(trigger.value, { opacity: 0, duration: reduced() ? 0 : 0.08 }, 0)
+    timeline.to(source(), { opacity: 0, duration: reduced() ? 0 : 0.08 }, 0)
     timeline.add(Flip.from(surfaceState, { targets: surface(), duration, scale: false, absolute: false, ease: popoverEase }), 0)
     timeline.to(surface(), { borderRadius: '32px', duration: reduced() ? 0 : 0.3, ease: popoverEase }, 0)
     timeline.add(Flip.from(contentState, { targets: layout(), duration, scale: true, absolute: false, ease: popoverEase }), 0)
@@ -185,7 +193,7 @@ export function useOriginPopover() {
 
   function outside(event) {
     if (document.querySelector('dialog[open]')) return
-    if (expanded.value && !panel.value.contains(event.target) && !trigger.value.contains(event.target)) close()
+    if (expanded.value && !panel.value.contains(event.target) && !source().contains(event.target)) close()
   }
   function escape(event) {
     if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return
@@ -196,7 +204,7 @@ export function useOriginPopover() {
   onBeforeUnmount(() => {
     timeline?.kill()
     wordGhost?.remove()
-    if (trigger.value) { label().style.visibility = ''; gsap.set(trigger.value, { clearProps: 'opacity' }) }
+    if (source()) { label().style.visibility = ''; gsap.set(source(), { clearProps: 'opacity' }) }
     document.removeEventListener('pointerdown', outside)
     document.removeEventListener('keydown', escape)
     if (panel.value?.matches(':popover-open')) panel.value.hidePopover()

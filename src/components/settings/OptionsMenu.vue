@@ -6,6 +6,7 @@ import './OptionsMenu.css'
 defineProps({ active: String })
 const emit = defineEmits(['settings', 'reload', 'navigate'])
 const { trigger, panel, expanded, toggle, close, drag } = useOriginPopover()
+defineExpose({ expanded, openFrom: origin => toggle({ currentTarget: origin }) })
 
 function choose(section, event) {
   if (section === 'feedback') { close(); location.hash = '/community/feedback'; return }
@@ -23,7 +24,7 @@ function choose(section, event) {
     <div id="options-menu" ref="panel" class="options-menu" popover="manual" aria-labelledby="options-menu-title" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.end" @pointercancel="drag.cancel" @lostpointercapture="drag.cancel" @wheel="drag.wheel">
       <div class="options-menu__surface" data-origin-surface />
       <div class="options-menu__layout">
-        <h2 id="options-menu-title" data-origin-title>Opciones</h2>
+        <div class="options-menu__heading"><h2 id="options-menu-title" data-origin-title>Opciones</h2></div>
         <div class="options-menu__items" data-origin-content>
           <button class="options-menu__intentions" type="button" :aria-current="active === 'intentions' ? 'page' : undefined" @click="close(); emit('navigate', 'intentions')"><MaterialIcon name="next_plan" />Intenciones</button>
           <button type="button" @click="choose('transfer', $event)"><MaterialIcon name="swap_horiz" />Crear transferencia</button>
