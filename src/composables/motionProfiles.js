@@ -3,42 +3,32 @@ import { CustomEase } from 'gsap/CustomEase'
 
 gsap.registerPlugin(CustomEase)
 
-// Curvas medidas en sb Tasks. Cambiar aquí evita desincronizar las capas.
-export const popoverEase = CustomEase.create('sb-popover',
-  'M0,0 C0.308,0.19 0.107,0.633 0.288,0.866 0.382,0.987 0.656,1 1,1')
-export const fadeEase = CustomEase.create('sb-fade', '.56,.27,0,1')
-export const blurEase = CustomEase.create('sb-blur', '.37,.35,0,1')
-export const liquidSizeEase = CustomEase.create('sb-liquid-size', '.8,.3,.5,.8')
+// Curvas oficiales de Material Design 3 (Applying transitions / Easing & duration).
+// Emphasized se usa en Container Transform que inicia y termina en pantalla.
+export const emphasizedEase = CustomEase.create(
+  'm3-emphasized',
+  'M0,0 C0.05,0 0.133333,0.06 0.166666,0.4 0.208333,0.82 0.25,1 1,1',
+)
+export const emphasizedDecelerate = CustomEase.create('m3-emphasized-decelerate', '0.05,0.7,0.1,1')
+export const emphasizedAccelerate = CustomEase.create('m3-emphasized-accelerate', '0.3,0,0.8,0.15')
+export const standardEase = CustomEase.create('m3-standard', '0.2,0,0,1')
+export const standardDecelerate = CustomEase.create('m3-standard-decelerate', '0,0,0,1')
+export const standardAccelerate = CustomEase.create('m3-standard-accelerate', '0.3,0,1,1')
 
-// Posición física independiente del tamaño y la opacidad. Conserva velocidad
-// al interrumpir la apertura para que el cierre no arranque desde cero.
-export function createPositionSpring(element) {
-  let state
-  let frame
-  let previous
-  function stop() { cancelAnimationFrame(frame); frame = undefined }
-  function move(to, { stiffness, damping, velocity = 0 }) {
-    stop()
-    const rect = element.getBoundingClientRect()
-    state = { x: rect.left, y: rect.top, vx: state?.vx ?? velocity * Math.sign(to.x - rect.left), vy: state?.vy ?? velocity * Math.sign(to.y - rect.top) }
-    previous = performance.now()
-    function tick(now) {
-      let dt = Math.min((now - previous) / 1000, 0.064)
-      previous = now
-      while (dt > 0) {
-        const step = Math.min(dt, 1 / 120)
-        for (const axis of ['x', 'y']) {
-          const v = `v${axis}`
-          state[v] += ((to[axis] - state[axis]) * stiffness - state[v] * damping) * step
-          state[axis] += state[v] * step
-        }
-        dt -= step
-      }
-      gsap.set(element, { left: state.x, top: state.y })
-      if (Math.abs(to.x - state.x) + Math.abs(to.y - state.y) + Math.abs(state.vx) + Math.abs(state.vy) > 0.01) frame = requestAnimationFrame(tick)
-      else { gsap.set(element, { left: to.x, top: to.y }); state = undefined }
-    }
-    frame = requestAnimationFrame(tick)
-  }
-  return { move, stop }
+export const chatMorphEase = CustomEase.create(
+  'chat-morph',
+  'M0,0 C0.308,0.19 0.107,0.633 0.288,0.866 0.382,0.987 0.656,1 1,1',
+)
+
+// Alias semánticos para los componentes de transición.
+export const popoverEase = emphasizedEase
+export const fadeEase = standardAccelerate
+export const blurEase = standardEase
+
+// Duraciones estándar de M3 para Container Transform (en segundos).
+export const m3Duration = {
+  expandLarge: 0.5,
+  expandMedium: 0.4,
+  collapseLarge: 0.3,
+  collapseMedium: 0.25,
 }

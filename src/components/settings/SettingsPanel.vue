@@ -9,6 +9,8 @@ import MaterialIcon from '../MaterialIcon.vue'
 import FinanceDialog from '../finance/FinanceDialog.vue'
 import SettingsIcon from './SettingsIcon.vue'
 import './SettingsPanel.css'
+import CloudAccount from '../account/CloudAccount.vue'
+import { cloudEnabled } from '../../composables/useCloudSession'
 
 // Datos visuales de la referencia; una cuenta conectada puede aportar su perfil.
 defineProps({ profile: { type: Object, default: () => ({ email: 'oxseduzco@gmail.com', name: 'Oxseduzco', plan: 'Prueba gratuita', verified: true }) } })
@@ -32,19 +34,35 @@ async function tabKey(event, index) {
   await nextTick()
   dialog.value.querySelector(`#settings-tab-${section.value}`)?.focus()
 }
+let settingsSwipe = null
+function onSettingsPointerDown(event) {
+  if (!event.isPrimary) return
+  settingsSwipe = { id: event.pointerId, x: event.clientX, y: event.clientY }
+}
+function onSettingsPointerUp(event) {
+  if (!settingsSwipe || event.pointerId !== settingsSwipe.id) return
+  const dx = event.clientX - settingsSwipe.x
+  const dy = event.clientY - settingsSwipe.y
+  settingsSwipe = null
+  if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.45) return
+  const index = tabs.findIndex(t => t.id === section.value)
+  const next = tabs[index + (dx < 0 ? 1 : -1)]
+  if (next) section.value = next.id
+}
 defineExpose({ open })
 </script>
 <template>
   <Teleport to="body">
     <dialog ref="dialog" class="settings-panel" aria-label="Configuración" @cancel.prevent="close" @click="backdrop" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.end" @pointercancel="drag.cancel" @lostpointercapture="drag.cancel" @wheel="drag.wheel">
-      <div class="settings-panel__layout" data-dialog-content>
+      <div class="settings-panel__layout" data-dialog-content @pointerdown="onSettingsPointerDown" @pointerup="onSettingsPointerUp" @pointercancel="settingsSwipe = null">
         <nav class="settings-panel__nav" role="tablist" aria-label="Configuración" aria-orientation="vertical" data-no-drag>
           <button v-for="(tab, index) in tabs" :id="`settings-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="section === tab.id" :aria-controls="`settings-content-${tab.id}`" :tabindex="section === tab.id ? 0 : -1" @click="section = tab.id" @keydown="tabKey($event, index)"><SettingsIcon :name="tab.id" /><span>{{ tab.label }}</span></button>
         </nav>
         <div class="settings-panel__content">
           <button class="settings-panel__close" type="button" aria-label="Cerrar ajustes" data-no-drag @click="close">×</button>
           <section :id="`settings-content-${section}`" :key="section" class="settings-panel__page" role="tabpanel" :aria-labelledby="`settings-tab-${section}`">
-            <div v-if="section === 'account'" class="account-surface">
+            <CloudAccount v-if="section === 'account' && cloudEnabled" />
+            <div v-else-if="section === 'account'" class="account-surface">
               <div class="account-surface__spacer" aria-hidden="true" />
               <div class="account-surface__copy">
                 <dl class="settings-profile">

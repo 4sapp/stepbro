@@ -13,13 +13,14 @@ async function edit(category, event) {
   Object.assign(draft, { name: '', description: '', symbol: '✳', ...category })
   error.value = ''; await nextTick(); editor.value.open(event.currentTarget)
 }
-function save() {
-  try { saveCategory(draft, editing.value); editor.value.close() }
+async function save() {
+  try { await saveCategory(draft, editing.value); editor.value.close() }
   catch (cause) { error.value = cause.message }
 }
-function remove() {
+async function remove() {
   if (!confirm('¿Eliminar esta categoría? Los movimientos se conservarán sin categoría.')) return
-  deleteCategory(editing.value); editor.value.close()
+  try { await deleteCategory(editing.value); editor.value.close() }
+  catch (cause) { error.value = cause.message }
 }
 </script>
 <template>

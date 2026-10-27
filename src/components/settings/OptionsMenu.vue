@@ -12,10 +12,21 @@ function choose(section, event) {
   if (section === 'feedback') { close(); location.hash = '/community/feedback'; return }
   emit('settings', { section, origin: event.currentTarget })
 }
+let triggerSwipeY = null
+function onTriggerDown(event) {
+  triggerSwipeY = event.clientY
+}
+function onTriggerMove(event) {
+  if (triggerSwipeY === null) return
+  if (event.clientY - triggerSwipeY < -18 && !expanded.value) {
+    triggerSwipeY = null
+    toggle({ currentTarget: event.currentTarget })
+  }
+}
 </script>
 
 <template>
-  <button ref="trigger" class="sidebar-item dashboard-sidebar__options" type="button" :data-active-section="active === 'intentions' || active === 'feedback' ? 'true' : undefined" :aria-expanded="expanded" aria-controls="options-menu" aria-label="Opciones" @click="toggle">
+  <button ref="trigger" class="sidebar-item dashboard-sidebar__options" type="button" :data-active-section="active === 'intentions' || active === 'feedback' ? 'true' : undefined" :aria-expanded="expanded" aria-controls="options-menu" aria-label="Opciones" style="touch-action: none;" @pointerdown="onTriggerDown" @pointermove="onTriggerMove" @pointerup="triggerSwipeY = null" @pointercancel="triggerSwipeY = null" @click="toggle">
     <MaterialIcon class="options-trigger__icon" name="apps" />
     <span data-origin-title>Opciones</span>
   </button>

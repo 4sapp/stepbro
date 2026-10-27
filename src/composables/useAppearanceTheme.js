@@ -13,7 +13,7 @@ export const themeColors = [
   { id: 'magenta', label: 'Magenta', value: '#d211e5', secondary: '#fc9fad' },
   { id: 'pink', label: 'Rosa', value: '#d785ba', secondary: '#ffcaac' },
 ]
-const selected = ref('neutral')
+const selected = ref('purple')
 const storageKey = 'stepbro.appearance.color'
 let iconVersion = 0
 function blend(first, second, weight) {
@@ -22,7 +22,7 @@ function blend(first, second, weight) {
   return '#' + a.map((value, i) => Math.round(value * weight + b[i] * (1 - weight)).toString(16).padStart(2, '0')).join('')
 }
 function apply(id) {
-  const color = themeColors.find(c => c.id === id) || themeColors[0]
+  const color = themeColors.find(c => c.id === id) || themeColors[7]
   selected.value = color.id
   const seed = color.value
   const logoSeed = color.id === 'neutral' ? '#528bb2' : seed
@@ -84,8 +84,11 @@ export function selectTheme(color) {
   try { localStorage.setItem(storageKey, selected.value) } catch { /* El tema sigue activo sin almacenamiento. */ }
 }
 export function initializeTheme() {
-  let id = 'neutral'
-  try { id = localStorage.getItem(storageKey) || id } catch { /* Usa la paleta inicial. */ }
+  let id = 'purple'
+  try {
+    const saved = localStorage.getItem(storageKey)
+    if (saved && saved !== 'neutral') id = saved
+  } catch { /* Usa la paleta inicial. */ }
   apply(id)
 }
 export function useAppearanceTheme() { return { selected, colors: themeColors, select: selectTheme } }

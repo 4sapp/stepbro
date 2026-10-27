@@ -17,12 +17,19 @@ async function edit(item, event) {
   if (item) draft.amount = String(item.amount / 100)
   error.value = ''; await nextTick(); editor.value.open(event.currentTarget)
 }
-function save() {
-  try { saveIntention(draft, editing.value); editor.value.close() }
+async function save() {
+  try { await saveIntention(draft, editing.value); editor.value.close() }
   catch (cause) { error.value = cause.message }
 }
-function remove() {
-  if (confirm('¿Eliminar esta intención?')) { deleteIntention(editing.value); editor.value.close() }
+async function remove() {
+  if (confirm('¿Eliminar esta intención?')) {
+    try { await deleteIntention(editing.value); editor.value.close() }
+    catch (cause) { error.value = cause.message }
+  }
+}
+async function toggle(item) {
+  try { await toggleIntention(item.id) }
+  catch (cause) { error.value = cause.message }
 }
 const frequencyName = id => frequencies.find(f => f.id === id)?.label
 const dateLabel = date => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${date}T12:00:00`))
@@ -34,7 +41,7 @@ const dateLabel = date => new Intl.DateTimeFormat('es', { day: 'numeric', month:
     <div v-else class="finance-intentions">
       <article v-for="item in intentions" :key="item.id" class="finance-intention" :class="{ 'finance-intention--paused': item.paused }">
         <button class="finance-intention__main" type="button" @click="edit(item, $event)"><span class="finance-intention__symbol" aria-hidden="true">{{ categoryFor(item.category).symbol }}</span><span><strong>{{ item.name }}</strong><small>{{ frequencyName(item.frequency) }} · {{ dateLabel(item.date) }}</small></span><span class="finance-intention__amount">{{ money(item.amount, item.currency || activeCurrency) }}</span></button>
-        <p v-if="item.note">{{ item.note }}</p><footer><span>{{ item.paused ? 'En pausa' : 'Planificado · No afecta el saldo' }}</span><button type="button" @click="toggleIntention(item.id)">{{ item.paused ? 'Reanudar' : 'Pausar' }}</button></footer>
+        <p v-if="item.note">{{ item.note }}</p><footer><span>{{ item.paused ? 'En pausa' : 'Planificado · No afecta el saldo' }}</span><button type="button" @click="toggle(item)">{{ item.paused ? 'Reanudar' : 'Pausar' }}</button></footer>
       </article>
     </div>
     <FinanceDialog ref="editor" :title="editing ? 'Editar intención' : 'Crear intención'">

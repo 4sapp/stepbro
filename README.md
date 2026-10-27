@@ -26,7 +26,8 @@ Money es el punto de partida. Puedes tomar sus componentes, probar otros colores
 - **Navegación adaptable:** barra clásica, flotante o dock en escritorio; barra inferior en celular.
 - **Movimiento:** paneles y menús con transiciones de GSAP y gestos para cerrarlos.
 - **Componentes para reutilizar:** selectores, filtros, diálogos y estados vacíos animados.
-- **Guardado local:** movimientos y preferencias en el navegador mediante `localStorage`.
+- **Backend propio:** Laravel + PostgreSQL, cuentas de usuario y guardado confirmado por el servidor. [Configurar backend](backend/README.md).
+- **Modo local:** disponible al desactivar `VITE_FINANCE_API`; las preferencias visuales permanecen en el navegador.
 
 <details>
 <summary><strong>Así se ve en celular</strong></summary>

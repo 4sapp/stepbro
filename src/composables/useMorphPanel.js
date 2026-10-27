@@ -1,9 +1,16 @@
 import { onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
+import {
+  emphasizedEase,
+  emphasizedDecelerate,
+  standardEase,
+  standardAccelerate,
+  standardDecelerate,
+  m3Duration,
+} from './motionProfiles'
 
 gsap.registerPlugin(Flip)
-import { popoverEase, fadeEase, blurEase } from './motionProfiles'
 
 export function useMorphPanel() {
   const dialog = ref(null)
@@ -28,17 +35,17 @@ export function useMorphPanel() {
     return `${value.includes('%') ? parseFloat(value) * Math.min(box.width, box.height) / 100 : parseFloat(value) || 0}px`
   }
 
-
   function placePanel() {
     const panel = dialog.value
     const origin = trigger.isConnected ? trigger.getBoundingClientRect() : lastOrigin
     const width = panel.offsetWidth
     const height = panel.offsetHeight
+    const mobile = innerWidth < 680
     panel.style.inset = 'auto'
     panel.style.margin = '0'
     gsap.set(panel, {
-      left: Math.round(Math.max(innerWidth < 680 ? 0 : 8, Math.min(origin.left + origin.width / 2 - width / 2, innerWidth - width - (innerWidth < 680 ? 0 : 8)))),
-      top: Math.round(Math.max(innerWidth < 680 ? 0 : 8, Math.min(origin.top + origin.height / 2 - height / 2, innerHeight - height - (innerWidth < 680 ? 0 : 8)))),
+      left: Math.round(mobile ? (innerWidth - width) / 2 : Math.max(8, Math.min(origin.left + origin.width / 2 - width / 2, innerWidth - width - 8))),
+      top: Math.round(mobile ? Math.max(10, (innerHeight - height) / 2) : Math.max(8, Math.min(origin.top + origin.height / 2 - height / 2, innerHeight - height - 8))),
     })
   }
   function resize() {
@@ -67,12 +74,23 @@ export function useMorphPanel() {
     timeline?.kill()
     if (reduced) { finishClose(); return }
     const panel = dialog.value
-    const state = originState()
-    panel.style.overflow = 'hidden'
+    const box = panel.getBoundingClientRect()
+    const to = trigger.isConnected ? trigger.getBoundingClientRect() : lastOrigin
+    const duration = m3Duration.collapseLarge
     // Conserva el ancho y alto del formulario mientras se encoge la ventana.
-    // Así sus textos y campos no se redistribuyen en cada fotograma.
     const contentWidth = layout.offsetWidth
     const contentHeight = layout.offsetHeight
+    gsap.set(panel, {
+      x: 0,
+      y: 0,
+      scale: 1,
+      left: box.left,
+      top: box.top,
+      width: box.width,
+      height: box.height,
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    })
     gsap.set(layout, {
       width: contentWidth,
       height: contentHeight,
@@ -80,26 +98,28 @@ export function useMorphPanel() {
       minHeight: contentHeight,
       overflow: 'hidden',
     })
-    panel.style.pointerEvents = 'none'
     timeline = gsap.timeline()
-    timeline.add(Flip.to(state, { targets: panel, duration: 0.2, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(panel, { borderRadius: radius(trigger), duration: 0.2, ease: popoverEase }, 0)
+    timeline.to(panel, {
+      left: to.left,
+      top: to.top,
+      width: to.width,
+      height: to.height,
+      borderRadius: radius(trigger),
+      duration,
+      ease: standardEase,
+    }, 0)
     timeline.to(surface, {
       backgroundColor: getComputedStyle(trigger).backgroundColor,
       boxShadow: '0 0 0 0 rgba(0, 0, 0, 0)',
-      duration: 0.2,
-      ease: popoverEase,
+      duration,
+      ease: standardEase,
     }, 0)
-    // El formulario conserva su escala: solo se difumina mientras el
-    // contorno se contrae, evitando que letras e iconos tiemblen.
-    timeline.to(layout, { filter: 'blur(12px)', duration: 0.2, ease: blurEase }, 0)
-    timeline.to(layout, { opacity: 0, duration: 0.18, ease: fadeEase }, 0)
-    // El original desvanece toda la ventana al volver al origen y recupera
-    // el botón durante los últimos 300 ms de la misma transición.
-    timeline.to(panel, { opacity: 0, duration: 0.5, ease: 'power3.in' }, 0)
-    timeline.to(trigger, { opacity: triggerOpacity || 1, duration: 0.3, ease: 'power2.out' }, 0.2)
-    timeline.call(finishClose, [], 0.5)
-
+    // El contenido saliente se desvanece en el primer tramo sin deformar su escala.
+    timeline.to(layout, { opacity: 0, filter: 'blur(8px)', duration: 0.18, ease: standardAccelerate }, 0)
+    // Relevo limpio con el botón de origen en el último tramo del colapso.
+    timeline.to(panel, { opacity: 0, duration: 0.12, ease: standardAccelerate }, duration - 0.12)
+    timeline.to(trigger, { opacity: triggerOpacity || 1, duration: 0.15, ease: standardDecelerate }, duration - 0.15)
+    timeline.call(finishClose, [], duration)
   }
 
   function open(event) {
@@ -112,14 +132,15 @@ export function useMorphPanel() {
     reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     previousOverflow = document.body.style.overflow
     panel.removeAttribute('data-backdrop-closing')
+    panel.style.pointerEvents = 'none'
     panel.showModal()
+    if (matchMedia('(hover: none)').matches) document.activeElement?.blur?.()
     document.body.style.overflow = 'hidden'
     surface = panel.querySelector('[data-panel-surface]')
     layout = panel.querySelector('[data-panel-layout]')
     panel.setAttribute('data-flip-id', flipId)
     placePanel()
     const state = originState()
-    const mobile = innerWidth < 680
     const targetRadius = getComputedStyle(panel).borderTopLeftRadius
     const targetColor = getComputedStyle(surface).backgroundColor
     const height = panel.offsetHeight
@@ -129,26 +150,28 @@ export function useMorphPanel() {
     gsap.set(layout, { width, height, minWidth: width, minHeight: height, overflow: 'hidden' })
     panel.style.overflow = 'hidden'
     phase.value = 'opening'
-    const duration = reduced ? 0 : 0.7
+    const duration = reduced ? 0 : m3Duration.expandLarge
     timeline = gsap.timeline({ onComplete() {
       phase.value = 'open'
+      panel.style.pointerEvents = ''
       gsap.set(panel, { clearProps: 'width,height,minWidth,maxWidth,minHeight,maxHeight,transform,overflow,borderRadius' })
       gsap.set(surface, { clearProps: 'all' })
       gsap.set(layout, { clearProps: 'all' })
       placePanel()
     } })
-    timeline.to(trigger, { opacity: 0, duration: reduced ? 0 : 0.08 }, 0)
-    timeline.add(Flip.from(state, { targets: panel, duration, scale: false, absolute: false, ease: popoverEase }), 0)
+    timeline.to(trigger, { opacity: 0, duration: reduced ? 0 : 0.08, ease: standardAccelerate }, 0)
+    timeline.add(Flip.from(state, { targets: panel, duration, scale: false, absolute: false, ease: emphasizedEase }), 0)
     timeline.fromTo(panel, { borderRadius: radius(trigger) }, {
-      borderRadius: targetRadius, duration: reduced ? 0 : mobile ? 1.2 : 0.3,
-      ease: mobile ? 'power2.inOut' : popoverEase,
+      borderRadius: targetRadius, duration, ease: emphasizedEase,
     }, 0)
     timeline.fromTo(surface, { backgroundColor: getComputedStyle(trigger).backgroundColor }, {
-      backgroundColor: targetColor, duration: reduced ? 0 : 0.3, ease: popoverEase,
+      backgroundColor: targetColor, duration, ease: emphasizedEase,
     }, 0)
-    timeline.fromTo(layout, { opacity: 0, filter: reduced ? 'none' : 'blur(8px)' }, {
-      opacity: 1, filter: 'blur(0px)', duration, ease: popoverEase,
-    }, 0)
+    timeline.fromTo(layout, { opacity: 0, filter: reduced ? 'none' : 'blur(6px)' }, {
+      opacity: 1, filter: 'blur(0px)',
+      duration: reduced ? 0 : duration - 0.08,
+      ease: emphasizedDecelerate,
+    }, reduced ? 0 : 0.08)
   }
 
   onBeforeUnmount(() => {

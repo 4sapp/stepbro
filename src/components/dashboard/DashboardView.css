@@ -7,10 +7,15 @@
 
 .finance-home__accounts {
   display: flex;
-  justify-content: center;
+  justify-content: safe center;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-block-end: 1rem;
+  scrollbar-width: none;
+  padding-block-end: 0.85rem;
+}
+
+.finance-home__accounts::-webkit-scrollbar {
+  display: none;
 }
 
 .finance-home__accounts button {
@@ -46,52 +51,27 @@
 }
 
 .finance-home__quick {
+  position: relative;
   display: flex;
   flex: 1;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   min-inline-size: 0;
   min-block-size: 5.5rem;
   padding: 1.25rem 1.5rem 1.25rem 2rem;
   border: 1px solid var(--theme-outline);
   border-radius: 2rem;
   background: transparent;
-}
-
-.finance-home__quick input {
-  inline-size: 100%;
-  min-inline-size: 0;
-  padding: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--theme-ink);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.4;
-  letter-spacing: -0.015em;
-}
-
-.finance-home__quick input::placeholder {
-  color: var(--theme-muted);
-  opacity: 1;
-}
-
-.finance-home__quick:focus-within {
-  border-color: var(--theme-ring);
-}
-
-.finance-home__quick button {
-  flex-shrink: 0;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
   color: var(--theme-muted);
   font: inherit;
-  font-size: 1.5rem;
+  text-align: start;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finance-home__quick:hover {
+  background: var(--theme-surface-raised);
 }
 
 .finance-home__actions .movement-action, .finance-page__actions .movement-action {
@@ -132,10 +112,6 @@
     padding: 1rem;
     min-block-size: 3.75rem;
     border-radius: 2rem;
-  }
-  .finance-home__quick button {
-    inline-size: 1.5rem;
-    block-size: 1.5rem;
   }
   .finance-home__actions .touch-button--icon-only {
     inline-size: 3.75rem;
@@ -189,10 +165,23 @@
 
 @media (max-width: 40rem) {
   .dashboard-content {
-    padding: 1rem 1rem calc(7rem + env(safe-area-inset-bottom, 0px));
+    padding: max(1.1rem, calc(env(safe-area-inset-top, 0px) + 0.65rem)) 1rem calc(7rem + env(safe-area-inset-bottom, 0px));
   }
   .dashboard-page--home {
-    padding-block-start: 2.5rem;
+    padding-block-start: 0.35rem;
+  }
+  .finance-home__actions {
+    gap: 1rem;
+    margin-block-start: 1.35rem;
+  }
+  .finance-home__quick {
+    padding: 0.9rem 1.25rem;
+    min-block-size: 5.15rem;
+    border-radius: 3rem;
+  }
+  .finance-home__actions .touch-button--icon-only {
+    inline-size: 5.15rem;
+    block-size: 5.15rem;
   }
 }
 

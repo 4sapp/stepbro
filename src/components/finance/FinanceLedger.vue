@@ -34,14 +34,15 @@ const filter = reactive({ type: '', account: '', category: '', month: '', year: 
 const years = computed(() => [...new Set([currentYear, ...transactions.value.map(t => Number(t.date.slice(0, 4))), ...Array.from({ length: 11 }, (_, i) => currentYear - i)])].sort((a, b) => b - a))
 const periodStart = computed(() => filter.year ? `${filter.year}-${filter.month || '01'}-01` : '')
 const periodEnd = computed(() => filter.year ? filter.month ? `${filter.year}-${filter.month}-${new Date(Number(filter.year), Number(filter.month), 0).getDate()}` : `${filter.year}-12-31` : '')
-const availableCurrencies = computed(() => [...new Set(accounts.value.map(a => a.currency))])
+const availableCurrencies = computed(() => [...new Set([...accounts.value.map(a => a.currency), ...transactions.value.flatMap(t => [t.currency, t.destinationCurrency]).filter(Boolean)])])
+const movementType = item => item.type === 'expense' ? 'Gasto' : item.type === 'income' ? 'Ingreso' : 'Transferencia'
 const displayedAmount = item => item.type === 'transfer' && item.destinationCurrency === activeCurrency.value ? item.destinationAmount : item.amount
 const accountName = id => accounts.value.find(a => a.id === id)?.name || 'Sin cuenta'
 const dateLabel = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T12:00:00`))
 const filtered = computed(() => transactions.value.filter(t => ((t.currency || 'USD') === activeCurrency.value || (t.type === 'transfer' && t.destinationCurrency === activeCurrency.value))
   && (!filter.type || t.type === filter.type) && (!filter.account || t.accountId === filter.account || t.destinationId === filter.account)
   && (!filter.category || t.category === filter.category) && (!filter.year || t.date.slice(0, 4) === filter.year) && (!filter.month || t.date.slice(5, 7) === filter.month)
-  && t.description.toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())))
+  && (t.description || movementType(t)).toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())))
 const visible = computed(() => filtered.value.slice(0, props.compact ? 5 : undefined))
 const income = computed(() => filtered.value.filter(t => t.type === 'income').reduce((n, t) => n + t.amount, 0))
 const expense = computed(() => filtered.value.filter(t => t.type === 'expense').reduce((n, t) => n + t.amount, 0))
@@ -62,7 +63,7 @@ function exportCsv() {
     if (typeof value !== 'number' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`
     return `"${text.replaceAll('"', '""')}"`
   }
-  const rows = [['Fecha', 'Hora', 'Descripción', 'Tipo', 'Monto', 'Moneda', 'Cuenta', 'Destino', 'Categoría', 'Nota'], ...filtered.value.map(t => [t.date, t.time, t.description, t.type, (t.type === 'expense' ? -t.amount : t.amount) / 100, t.currency, accountName(t.accountId), t.destinationId ? accountName(t.destinationId) : '', categoryFor(t.category).name, t.note])]
+  const rows = [['Fecha', 'Hora', 'Descripción', 'Tipo', 'Monto', 'Moneda', 'Cuenta', 'Destino', 'Categoría', 'Nota'], ...filtered.value.map(t => [t.date, t.time, t.description || movementType(t), t.type, (t.type === 'expense' ? -t.amount : t.amount) / 100, t.currency, accountName(t.accountId), t.destinationId ? accountName(t.destinationId) : '', categoryFor(t.category).name, t.note])]
   const url = URL.createObjectURL(new Blob(['\uFEFF', rows.map(row => row.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
   const link = document.createElement('a'); link.href = url; link.download = `movimientos-${localDate()}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
@@ -88,7 +89,7 @@ function exportCsv() {
         </form>
       </Transition>
     </FinanceHeader>
-    <header v-else class="finance-ledger__header"><h2>Movimientos</h2><button class="finance-ledger__filters" type="button" @click="filters.open($event.currentTarget)"><span aria-hidden="true">☷</span> Filtros<span v-if="hasFilters" class="finance-ledger__filter-dot" /></button></header>
+    <header v-else class="finance-ledger__header"><h2>Movimientos</h2><button class="finance-ledger__filters" type="button" @click="filters.open($event.currentTarget)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10 6h10M4 18h10"/><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="18" r="2.2"/></svg> Filtros<span v-if="hasFilters" class="finance-ledger__filter-dot" /></button></header>
     <div v-if="!compact" class="finance-ledger__stats"><div><span>Ingresos</span><strong>{{ money(income, activeCurrency) }}</strong></div><div><span>Gastos</span><strong>{{ money(expense, activeCurrency) }}</strong></div><div><span>Prom diario</span><strong>{{ money(daily, activeCurrency) }}</strong></div><div><span>Total</span><strong>{{ money(income - expense, activeCurrency) }}</strong></div></div>
     <div v-if="hasFilters" class="finance-ledger__active"><span>Vista filtrada</span><button type="button" @click="resetFilters">Quitar filtros</button></div>
     <div class="finance-ledger__surface">
@@ -96,7 +97,7 @@ function exportCsv() {
       <ol v-else class="finance-ledger__list">
         <li v-for="(item, index) in visible" :key="item.id">
           <time v-if="!index || visible[index - 1].date !== item.date" class="finance-ledger__date" :datetime="item.date">{{ dateLabel(item.date) }}</time>
-          <button class="finance-ledger__row" type="button" @click="edit(item, $event)"><span class="finance-ledger__symbol" aria-hidden="true">{{ item.type === 'transfer' ? '↔' : categoryFor(item.category).symbol }}</span><span class="finance-ledger__detail"><span>{{ item.description }}</span><small>{{ accountName(item.accountId) }}{{ item.type === 'transfer' ? ` → ${accountName(item.destinationId)}` : ` · ${categoryFor(item.category).name}` }}</small></span><span class="finance-ledger__value"><span :class="{ 'finance-ledger__expense': item.type === 'expense' }">{{ item.type === 'expense' ? '−' : item.type === 'income' ? '+' : '' }}{{ money(displayedAmount(item), activeCurrency) }}</span><small>{{ item.time }}</small></span></button>
+          <button class="finance-ledger__row" type="button" @click="edit(item, $event)"><span class="finance-ledger__symbol" aria-hidden="true">{{ item.type === 'transfer' ? '↔' : categoryFor(item.category).symbol }}</span><span class="finance-ledger__detail"><span>{{ item.description || movementType(item) }}</span><small>{{ accountName(item.accountId) }}{{ item.type === 'transfer' ? ` → ${accountName(item.destinationId)}` : ` · ${categoryFor(item.category).name}` }}</small></span><span class="finance-ledger__value"><span :class="{ 'finance-ledger__expense': item.type === 'expense' }">{{ item.type === 'expense' ? '−' : item.type === 'income' ? '+' : '' }}{{ money(displayedAmount(item), activeCurrency) }}</span><small>{{ item.time }}</small></span></button>
         </li>
       </ol>
     </div>

@@ -14,13 +14,13 @@ async function edit(account, event) {
   Object.assign(draft, { name: account?.name || '', type: account?.type || 'cash', currency: account?.currency || activeCurrency.value, opening: String((account?.opening || 0) / 100) })
   error.value = ''; await nextTick(); editor.value.open(event.currentTarget)
 }
-function save() {
-  try { saveAccount(draft, editing.value); editor.value.close() }
+async function save() {
+  try { await saveAccount(draft, editing.value); editor.value.close() }
   catch (cause) { error.value = cause.message }
 }
-function remove() {
+async function remove() {
   if (!confirm('¿Eliminar esta cuenta?')) return
-  try { deleteAccount(editing.value); editor.value.close() }
+  try { await deleteAccount(editing.value); editor.value.close() }
   catch (cause) { error.value = cause.message }
 }
 </script>

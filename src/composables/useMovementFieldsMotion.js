@@ -1,6 +1,6 @@
 import { nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import gsap from 'gsap'
-import { popoverEase } from './motionProfiles'
+import { emphasizedEase, standardEase } from './motionProfiles'
 
 export function useMovementFieldsMotion({ dialog, phase, sources, types, indicator, selectedType }) {
   let resizeTween
@@ -16,7 +16,7 @@ export function useMovementFieldsMotion({ dialog, phase, sources, types, indicat
     indicatorTween?.kill()
     const destination = { x: label.offsetLeft, y: label.offsetTop, width: label.offsetWidth, height: label.offsetHeight }
     if (!animate || reduced()) gsap.set(indicator.value, destination)
-    else indicatorTween = gsap.to(indicator.value, { ...destination, duration: 0.38, ease: popoverEase, overwrite: true })
+    else indicatorTween = gsap.to(indicator.value, { ...destination, duration: 0.3, ease: standardEase, overwrite: true })
   }
 
   // Mide antes del cambio de Vue y después de insertar/quitar campos. Solo
@@ -39,7 +39,7 @@ export function useMovementFieldsMotion({ dialog, phase, sources, types, indicat
     }
     gsap.set(panel, { height: previousHeight, overflow: 'hidden' })
     resizeTween = gsap.to(panel, {
-      height: nextHeight, duration: 0.42, ease: popoverEase,
+      height: nextHeight, duration: 0.35, ease: emphasizedEase,
       onComplete() { gsap.set(panel, { clearProps: 'height,overflow' }) },
     })
   }, { flush: 'pre' })

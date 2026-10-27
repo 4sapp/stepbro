@@ -3,7 +3,14 @@ import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { useDragDismiss } from './useDragDismiss'
 import { useNavigationLayout } from './useNavigationLayout'
-import { popoverEase, fadeEase, blurEase } from './motionProfiles'
+import {
+  emphasizedEase,
+  emphasizedDecelerate,
+  standardEase,
+  standardAccelerate,
+  standardDecelerate,
+  m3Duration,
+} from './motionProfiles'
 
 gsap.registerPlugin(Flip)
 
@@ -128,67 +135,92 @@ export function useOriginPopover() {
     ready = false
     timeline?.kill()
     if (reduced()) { finishClose(); return }
-    // Captura primero, incluso si la apertura o el gesto están a medio camino.
     const word = visibleTriggerLabel() ? prepareWord(wordGhost || title(), label()) : null
     if (!word) restoreWord()
-    const surfaceState = Flip.getState(surface())
-    const contentState = Flip.getState(layout())
-    gsap.set(panel.value, { x: 0, y: 0, scale: 1 })
     const bounds = panel.value.getBoundingClientRect()
     const origin = source().getBoundingClientRect()
+    const contentWidth = layout().offsetWidth
+    const contentHeight = layout().offsetHeight
+    gsap.set(panel.value, {
+      x: 0,
+      y: 0,
+      scale: 1,
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      overflow: 'hidden',
+    })
+    const surfaceState = Flip.getState(surface())
+    gsap.set(layout(), {
+      width: contentWidth,
+      height: contentHeight,
+      minWidth: contentWidth,
+      minHeight: contentHeight,
+      overflow: 'hidden',
+    })
     gsap.set(surface(), {
       x: origin.left - bounds.left, y: origin.top - bounds.top,
       width: origin.width, height: origin.height,
     })
-    gsap.set(layout(), {
-      x: origin.left - bounds.left, y: origin.top - bounds.top,
-      scaleX: origin.width / bounds.width, scaleY: origin.height / bounds.height,
-    })
+    const duration = m3Duration.collapseMedium
     timeline = gsap.timeline()
-    timeline.add(Flip.from(surfaceState, { targets: surface(), duration: 0.5, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(surface(), { borderRadius: triggerRadius(), duration: 0.5, ease: popoverEase }, 0)
-    timeline.add(Flip.from(contentState, { targets: layout(), duration: 2, scale: true, absolute: true, ease: popoverEase }), 0)
-    timeline.to(layout(), { borderRadius: '400px', opacity: 0, duration: 0.5, ease: fadeEase }, 0)
-    timeline.to(layout(), { filter: 'blur(32px)', duration: 0.5, ease: blurEase }, 0)
-    // Igual que ModalHost de sb Tasks: el clon del DESTINO vuelve desde
-    // el estado del encabezado en una sola transición, sin offsets añadidos.
-    if (word) timeline.add(Flip.from(word.state, {
-      targets: word.ghost, duration: 0.5,
-      scale: true, absolute: true, ease: popoverEase,
-    }), 0)
+    timeline.add(Flip.from(surfaceState, { targets: surface(), duration, scale: false, absolute: false, ease: standardEase }), 0)
     timeline.to(surface(), {
+      borderRadius: triggerRadius(),
       backgroundColor: getComputedStyle(source()).backgroundColor,
-      duration: 0.5, ease: popoverEase,
+      duration,
+      ease: standardEase,
     }, 0)
-    timeline.to(surface(), { opacity: 0, duration: 0.5, ease: 'power3.in' }, 0)
-    timeline.to(source(), { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.2)
-    timeline.call(finishClose, [], 0.5)
+    timeline.to(layout(), {
+      opacity: 0,
+      filter: 'blur(6px)',
+      duration: 0.15,
+      ease: standardAccelerate,
+    }, 0)
+    if (word) timeline.add(Flip.from(word.state, {
+      targets: word.ghost,
+      duration,
+      scale: true,
+      absolute: true,
+      ease: standardEase,
+    }), 0)
+    timeline.to(surface(), { opacity: 0, duration: 0.1, ease: standardAccelerate }, duration - 0.1)
+    timeline.to(source(), { opacity: 1, duration: 0.12, ease: standardDecelerate }, duration - 0.12)
+    timeline.call(finishClose, [], duration)
   }
 
   function toggle(event) {
     if (expanded.value) { close(); return }
     activeTrigger.value = event?.currentTarget || trigger.value
+    panel.value.style.pointerEvents = 'none'
     panel.value.showPopover()
     expanded.value = true
     const { origin, width, height, left, top } = placePanel()
     gsap.set(title(), { width: 'max-content' })
-    // Un botón de solo icono no tiene texto visible al que hacer morph.
-    // El título entra y sale con el contenido, sin usar la etiqueta de 1 px.
     const word = visibleTriggerLabel() ? prepareWord(label(), title()) : null
     gsap.set(surface(), { x: origin.left - left, y: origin.top - top, width: origin.width, height: origin.height, borderRadius: triggerRadius() })
-    gsap.set(layout(), { x: origin.left - left, y: origin.top - top, scaleX: origin.width / width, scaleY: origin.height / height })
     const surfaceState = Flip.getState(surface())
-    const contentState = Flip.getState(layout())
     gsap.set(surface(), { x: 0, y: 0, width, height })
-    gsap.set(layout(), { x: 0, y: 0, scaleX: 1, scaleY: 1 })
-    const duration = reduced() ? 0 : 0.7
-    timeline = gsap.timeline({ onComplete: () => { restoreWord(); gsap.set(surface(), { clearProps: 'borderRadius' }); ready = true } })
-    timeline.to(source(), { opacity: 0, duration: reduced() ? 0 : 0.08 }, 0)
-    timeline.add(Flip.from(surfaceState, { targets: surface(), duration, scale: false, absolute: false, ease: popoverEase }), 0)
-    timeline.to(surface(), { borderRadius: '32px', duration: reduced() ? 0 : 0.3, ease: popoverEase }, 0)
-    timeline.add(Flip.from(contentState, { targets: layout(), duration, scale: true, absolute: false, ease: popoverEase }), 0)
-    timeline.fromTo(layout(), { opacity: 0, filter: reduced() ? 'none' : 'blur(8px)' }, { opacity: 1, filter: 'blur(0px)', duration, ease: popoverEase }, 0)
-    if (word) timeline.add(Flip.from(word.state, { targets: word.ghost, duration, scale: true, absolute: true, ease: popoverEase }), 0)
+    const duration = reduced() ? 0 : m3Duration.expandMedium
+    timeline = gsap.timeline({
+      onComplete: () => {
+        restoreWord()
+        gsap.set(surface(), { clearProps: 'borderRadius' })
+        panel.value.style.pointerEvents = ''
+        ready = true
+      },
+    })
+    timeline.to(source(), { opacity: 0, duration: reduced() ? 0 : 0.08, ease: standardAccelerate }, 0)
+    timeline.add(Flip.from(surfaceState, { targets: surface(), duration, scale: false, absolute: false, ease: emphasizedEase }), 0)
+    timeline.to(surface(), { borderRadius: '32px', duration, ease: emphasizedEase }, 0)
+    timeline.fromTo(
+      layout(),
+      { opacity: 0, y: (origin.top - top) * 0.15, filter: reduced() ? 'none' : 'blur(6px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: reduced() ? 0 : duration - 0.06, ease: emphasizedDecelerate },
+      reduced() ? 0 : 0.06,
+    )
+    if (word) timeline.add(Flip.from(word.state, { targets: word.ghost, duration, scale: true, absolute: true, ease: emphasizedEase }), 0)
   }
 
   function outside(event) {

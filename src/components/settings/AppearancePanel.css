@@ -213,6 +213,28 @@
 }
 
 @media (max-width: 40rem) {
+  .appearance-panel {
+    inline-size: calc(100vw - 1.5rem);
+    border-radius: 2rem;
+  }
+  .appearance-panel__body {
+    padding: 0.75rem 1rem 1.5rem;
+  }
+  .appearance-panel__body::before {
+    content: '';
+    display: block;
+    inline-size: 2.5rem;
+    block-size: 0.28rem;
+    margin: 0 auto 0.65rem;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--theme-muted) 32%, transparent);
+  }
+  .appearance-panel__close {
+    display: none;
+  }
+  .appearance-panel__palette {
+    margin-block: 1.25rem 0.5rem;
+  }
   .appearance-panel__navigation--desktop {
     display: none;
   }

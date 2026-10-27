@@ -27,6 +27,22 @@ test('ingresar, editar y eliminar actualiza las cuentas sin alterar el saldo ini
   assert.equal(s.balance.value, 10000)
   assert.equal(s.accounts.value[0].opening, 0)
 })
+test('guarda ingresos y gastos con solo importe y persiste descripción vacía y fecha local', async () => {
+  const { store: s, values } = await freshStore()
+  const before = new Date()
+  const expectedDate = `${before.getFullYear()}-${String(before.getMonth() + 1).padStart(2, '0')}-${String(before.getDate()).padStart(2, '0')}`
+  s.saveMovement({ type: 'expense', amount: '10' })
+  s.saveMovement({ type: 'income', amount: '20' })
+  for (const transaction of s.transactions.value) {
+    assert.equal(transaction.description, '')
+    assert.equal(transaction.category, '')
+    assert.equal(transaction.accountId, '')
+    assert.equal(transaction.date, expectedDate)
+  }
+  const persisted = JSON.parse(values.get('stepbro.finance.v1'))
+  assert.equal(persisted.transactions.length, 2)
+  assert.ok(persisted.transactions.every(t => t.description === '' && t.date === expectedDate))
+})
 test('una transferencia conserva el total y mueve el dinero entre cuentas', async () => {
   const { store: s } = await freshStore()
   s.saveAccount({ name: 'Banco', opening: '100', currency: 'USD', type: 'bank' })
@@ -73,6 +89,11 @@ test('una intención se guarda y pausa sin ejecutar cargos', async () => {
 test('rechaza fechas, cuentas y transferencias inválidas sin guardar registros', async () => {
   const { store: s } = await freshStore()
   for (const overrides of [{ date: '2026-02-30' }, { accountId: 'missing' }, { amount: '0' }, { type: 'transfer', destinationId: 'cash' }]) assert.throws(() => s.saveMovement(movement(overrides)))
+  assert.equal(s.transactions.value.length, 0)
+})
+test('rechaza una fecha explícita inválida aunque admita fechas omitidas', async () => {
+  const { store: s } = await freshStore()
+  assert.throws(() => s.saveMovement({ type: 'expense', amount: '10', date: '2026-02-30' }), /fecha válida/)
   assert.equal(s.transactions.value.length, 0)
 })
 test('migra los datos iniciales conservando el historial y la moneda', async () => {

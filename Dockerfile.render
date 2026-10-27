@@ -1,0 +1,33 @@
+FROM docker.io/library/node:22-bookworm AS frontend
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable \
+    && corepack prepare pnpm@10.20.0 --activate \
+    && pnpm install --frozen-lockfile
+COPY index.html vite.config.js ./
+COPY src ./src
+COPY public ./public
+RUN VITE_FINANCE_API=true pnpm build
+
+FROM docker.io/library/composer:2 AS composer
+FROM docker.io/library/php:8.4-apache-bookworm AS app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev libonig-dev unzip \
+    && docker-php-ext-install pdo_pgsql mbstring \
+    && a2enmod rewrite \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=composer /usr/bin/composer /usr/local/bin/composer
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
+    && printf '<Directory /var/www/html/public>\nAllowOverride All\nRequire all granted\n</Directory>\nDirectoryIndex disabled\nDirectoryIndex index.html index.php\n' > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel
+WORKDIR /var/www/html
+COPY backend/ ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
+    && rm -f .env \
+    && chown -R www-data:www-data storage bootstrap/cache
+COPY --from=frontend /app/dist/ ./public/
+COPY backend/render-start.sh /usr/local/bin/render-start
+RUN chmod +x /usr/local/bin/render-start
+EXPOSE 10000
+CMD ["render-start"]

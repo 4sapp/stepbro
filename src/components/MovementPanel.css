@@ -396,26 +396,18 @@
   pointer-events: none;
 }
 
-/* Vue conserva las posiciones anteriores; los campos vecinos se recolocan
-   mientras la ventana acompaña el cambio de alto con GSAP. */
-
-.movement-fields-move,
-.movement-fields-enter-active,
-.movement-fields-leave-active {
-  transition: transform 420ms cubic-bezier(.22, .8, .22, 1), opacity 260ms ease, filter 260ms ease;
+/* Los campos que salen dejan de ocupar espacio de inmediato para no
+   superponerse con los controles nuevos al cambiar de tipo. */
+.movement-fields-enter-active {
+  transition: opacity 180ms ease;
 }
 
-.movement-fields-enter-from,
-.movement-fields-leave-to {
+.movement-fields-enter-from {
   opacity: 0;
-  filter: blur(5px);
-  transform: translateY(8px);
 }
 
 .movement-fields-leave-active {
-  position: absolute;
-  inline-size: calc(100% - 1.5rem);
-  pointer-events: none;
+  display: none;
 }
 
 @media (max-width: 30rem) {
@@ -530,22 +522,62 @@
 
 @media (max-width: 679px) {
   .movement-panel {
-    inline-size: 100vw;
-    max-inline-size: none;
-    block-size: 100svh;
-    max-block-size: 100svh;
-    border-radius: 0;
+    inline-size: calc(100vw - 1.25rem);
+    max-inline-size: calc(100vw - 1.25rem);
+    block-size: fit-content;
+    max-block-size: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: 2rem;
   }
   .movement-panel__layout {
-    min-block-size: 100svh;
-    max-block-size: 100svh;
-    padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+    min-block-size: 0;
+    max-block-size: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    padding: 0.75rem;
+    gap: 0.65rem;
   }
-  .movement-form {
+  .movement-panel__header {
+    padding: 0.45rem 0.65rem 0.65rem;
+    border-radius: 1.5rem;
+    gap: 0.25rem;
+  }
+  .movement-panel__header::before {
+    content: '';
+    display: block;
+    align-self: center;
+    inline-size: 2.5rem;
+    block-size: 0.28rem;
+    margin-block: 0.15rem 0.2rem;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--theme-muted) 32%, transparent);
+  }
+  .movement-panel__close,
+  .movement-form .movement-form__footer .movement-form__cancel {
+    display: none;
+  }
+  .movement-form .movement-form__footer .movement-form__save {
     flex: 1;
   }
-  .movement-form .movement-form__footer {
-    align-self: end;
+  .movement-panel__header h2 {
+    font-size: 1.9rem;
+    padding: 0.2rem 0.45rem 0.35rem;
+  }
+  .movement-form {
+    gap: 0.6rem;
+    align-content: start;
+  }
+  .movement-field,
+  .movement-field--select .finance-select__trigger {
+    min-block-size: 3.55rem;
+  }
+  .movement-field--select .finance-select__trigger {
+    padding-block-start: 1.55rem;
+    font-size: 1rem;
+  }
+  .movement-field input:not([type='radio']):not([type='date']):not([type='time']),
+  .movement-field textarea {
+    font-size: 1rem;
+  }
+  .movement-form__row--amount {
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
   }
 }
 
@@ -561,17 +593,6 @@
 }
 
 .movement-form .movement-form__footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  background: linear-gradient(transparent, var(--theme-surface-raised) 35%);
-}
-
-@media (max-width: 679px) {
-  .movement-panel__header h2 {
-    font-size: 2.8125rem;
-  }
-  .movement-form {
-    align-content: start;
-  }
+  position: static;
+  background: transparent;
 }

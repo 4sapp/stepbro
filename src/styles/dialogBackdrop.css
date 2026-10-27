@@ -1,23 +1,24 @@
 /* La sombra se anima por sí misma: no depende de la escala ni la opacidad
    de la ventana. Se apaga antes de retirar el diálogo de la capa superior. */
-dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)::backdrop {
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel, .assistant-chat)::backdrop {
   background: rgb(30 25 35 / 18%);
   opacity: 0;
-  transition: opacity 450ms cubic-bezier(.22, .61, .36, 1);
+  transition: opacity 400ms cubic-bezier(0.05, 0.7, 0.1, 1);
 }
-dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[open]::backdrop {
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel, .assistant-chat)[open]::backdrop {
   opacity: 1;
 }
-dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[data-backdrop-closing]::backdrop {
+dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel, .assistant-chat)[data-backdrop-closing]::backdrop {
   opacity: 0;
+  transition: opacity 250ms cubic-bezier(0.3, 0, 1, 1);
 }
 @starting-style {
-  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)[open]::backdrop {
+  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel, .assistant-chat)[open]::backdrop {
     opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel)::backdrop {
+  dialog:is(.movement-panel, .settings-panel, .finance-dialog, .appearance-panel, .assistant-chat)::backdrop {
     transition: none;
   }
 }

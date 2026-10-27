@@ -7,9 +7,10 @@ import OptionsMenu from '../settings/OptionsMenu.vue'
 import './DashboardSidebar.css'
 
 const options = ref(null)
+const navRef = ref(null)
 
-defineProps({ active: String })
-defineEmits(['navigate', 'settings'])
+const props = defineProps({ active: String })
+const emit = defineEmits(['navigate', 'settings'])
 
 function reload() {
   window.location.reload()
@@ -22,6 +23,31 @@ const items = [
   { id: 'accounts', label: 'Cuentas' },
   { id: 'intentions', label: 'Intenciones' },
 ]
+
+let navScrub = null
+function pickNavAt(clientX, clientY) {
+  const node = document.elementFromPoint(clientX, clientY)?.closest('[data-nav-id]')
+  const id = node?.dataset.navId
+  if (id && id !== props.active) emit('navigate', id)
+}
+function startNavScrub(event) {
+  if (event.pointerType !== 'touch') return
+  navScrub = { id: event.pointerId, x: event.clientX, y: event.clientY, active: false }
+}
+function moveNavScrub(event) {
+  if (!navScrub || event.pointerId !== navScrub.id) return
+  if (!navScrub.active) {
+    if (Math.hypot(event.clientX - navScrub.x, event.clientY - navScrub.y) < 6) return
+    navScrub.active = true
+    navRef.value?.setPointerCapture?.(event.pointerId)
+  }
+  pickNavAt(event.clientX, event.clientY)
+}
+function endNavScrub(event) {
+  if (!navScrub || event.pointerId !== navScrub.id) return
+  navScrub = null
+  if (navRef.value?.hasPointerCapture?.(event.pointerId)) navRef.value.releasePointerCapture(event.pointerId)
+}
 </script>
 
 <template>
@@ -33,8 +59,8 @@ const items = [
         <MaterialIcon class="dashboard-sidebar__brand-chevron" name="expand_all" />
       </button>
     </div>
-    <nav class="dashboard-sidebar__nav" aria-label="Secciones">
-      <button v-for="item in items" :key="item.id" :class="['sidebar-item', { 'sidebar-item--intentions': item.id === 'intentions' }]" type="button" :aria-label="item.label" :aria-current="active === item.id ? 'page' : undefined" @click="$emit('navigate', item.id)">
+    <nav ref="navRef" class="dashboard-sidebar__nav" aria-label="Secciones" style="touch-action: none;" @pointerdown="startNavScrub" @pointermove="moveNavScrub" @pointerup="endNavScrub" @pointercancel="endNavScrub">
+      <button v-for="item in items" :key="item.id" :data-nav-id="item.id" :class="['sidebar-item', { 'sidebar-item--intentions': item.id === 'intentions' }]" type="button" :aria-label="item.label" :aria-current="active === item.id ? 'page' : undefined" @click="$emit('navigate', item.id)">
         <AppIcon :name="item.id" />
         <span>{{ item.label }}</span>
       </button>

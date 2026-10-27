@@ -80,9 +80,9 @@ async function save() {
   saving.value = true
   try {
     const input = { ...form }
-    if (locationEnabled.value && !editing.value) input.location = await currentLocation()
+    if (locationEnabled.value && !editing.value) input.location = await currentLocation().catch(() => null)
     if (revision !== saveRevision) return
-    saveMovement(input, editing.value)
+    await saveMovement(input, editing.value)
     formError.value = ''
     close()
   } catch (cause) {
@@ -91,9 +91,10 @@ async function save() {
     if (revision === saveRevision) saving.value = false
   }
 }
-function remove() {
+async function remove() {
   if (!confirm('¿Eliminar este movimiento? Se actualizará el saldo de la cuenta.')) return
-  close(); deleteMovement(editing.value)
+  try { await deleteMovement(editing.value); close() }
+  catch (cause) { formError.value = cause.message }
 }
 function openFromQuickEntry() { action.value?.querySelector('button')?.click() }
 async function createTransfer(event) {
@@ -128,6 +129,31 @@ function closeFromBackdrop(event) {
     || event.clientY < bounds.top || event.clientY > bounds.bottom
   if (outside) close()
 }
+let scrubbingTypes = null
+function pickTypeAt(clientX) {
+  if (!types.value) return
+  const node = document.elementFromPoint(clientX, types.value.getBoundingClientRect().top + types.value.offsetHeight / 2)
+  const input = node?.closest('label')?.querySelector('input[type="radio"]')
+  if (input && form.type !== input.value) form.type = input.value
+}
+function startTypeScrub(event) {
+  if (event.pointerType !== 'touch') return
+  scrubbingTypes = { id: event.pointerId, x: event.clientX, active: false }
+}
+function moveTypeScrub(event) {
+  if (!scrubbingTypes || event.pointerId !== scrubbingTypes.id) return
+  if (!scrubbingTypes.active) {
+    if (Math.abs(event.clientX - scrubbingTypes.x) < 6) return
+    scrubbingTypes.active = true
+    types.value?.setPointerCapture?.(event.pointerId)
+  }
+  pickTypeAt(event.clientX)
+}
+function endTypeScrub(event) {
+  if (!scrubbingTypes || event.pointerId !== scrubbingTypes.id) return
+  scrubbingTypes = null
+  if (types.value?.hasPointerCapture?.(event.pointerId)) types.value.releasePointerCapture(event.pointerId)
+}
 </script>
 
 <template>
@@ -160,8 +186,8 @@ function closeFromBackdrop(event) {
           </button>
           <h2 :id="titleId" data-shared-item="title">{{ editing ? 'Editar' : 'Crear' }}<br />movimiento</h2>
         </header>
-        <TransitionGroup name="movement-fields" tag="form" @before-leave="disableLeavingFields" @leave-cancelled="restoreLeavingFields" @after-enter="restoreLeavingFields" class="movement-panel__body movement-form" data-panel-content data-no-drag @submit.prevent="save">
-          <fieldset key="types" ref="types" class="movement-form__types">
+        <TransitionGroup name="movement-fields" tag="form" @before-leave="disableLeavingFields" @leave-cancelled="restoreLeavingFields" @after-enter="restoreLeavingFields" class="movement-panel__body movement-form" data-panel-content @submit.prevent="save">
+          <fieldset key="types" ref="types" class="movement-form__types" style="touch-action: pan-y;" @pointerdown="startTypeScrub" @pointermove="moveTypeScrub" @pointerup="endTypeScrub" @pointercancel="endTypeScrub">
             <span ref="typeIndicator" class="movement-form__type-indicator" aria-hidden="true" />
             <legend class="visually-hidden">Tipo de movimiento</legend>
             <label :class="{ 'is-selected': form.type === 'expense' }"><input v-model="form.type" type="radio" value="expense" />Gasto</label>
@@ -170,7 +196,7 @@ function closeFromBackdrop(event) {
           </fieldset>
           <label key="description" class="movement-field">
             <span class="movement-field__label">Descripción</span>
-            <input v-model="form.description" maxlength="120" required />
+            <input v-model="form.description" maxlength="120" />
           </label>
           <div key="amount" class="movement-form__row movement-form__row--amount">
             <label class="movement-field">
@@ -214,7 +240,7 @@ function closeFromBackdrop(event) {
               <span class="visually-hidden">Fecha</span>
               <span class="movement-field__picker-value">{{ formattedDate }}</span>
               <svg class="movement-field__picker-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              <input v-model="form.date" type="date" required @click="$event.target.showPicker?.()" />
+              <input v-model="form.date" type="date" @click="$event.target.showPicker?.()" />
             </label>
             <label class="movement-field movement-field--picker">
               <span class="visually-hidden">Hora</span>

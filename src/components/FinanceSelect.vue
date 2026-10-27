@@ -1,7 +1,15 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, useAttrs, useId } from 'vue'
 import gsap from 'gsap'
-import { popoverEase, fadeEase, blurEase } from '../composables/motionProfiles'
+import {
+  emphasizedEase,
+  emphasizedDecelerate,
+  standardEase,
+  standardAccelerate,
+  standardDecelerate,
+  m3Duration,
+} from '../composables/motionProfiles'
+import { useDragDismiss } from '../composables/useDragDismiss'
 import './FinanceSelect.css'
 defineOptions({ inheritAttrs: false })
 const props = defineProps({ modelValue: [String, Number], required: Boolean })
@@ -14,6 +22,7 @@ const panel = ref(null)
 const opened = ref(false)
 const closing = ref(false)
 const content = ref(null)
+const drag = useDragDismiss({ target: panel, canDrag: () => opened.value && !closing.value, dismiss: () => close(true) })
 let timeline
 let generation = 0
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -35,7 +44,8 @@ function finishClose() {
   opened.value = false
   closing.value = false
   if (trigger.value) gsap.set(trigger.value, { clearProps: 'opacity' })
-  if (content.value) gsap.set(content.value, { clearProps: 'opacity,filter,transform,borderRadius,width,height' })
+  if (panel.value) gsap.set(panel.value, { clearProps: 'opacity,backgroundColor,borderRadius,transform' })
+  if (content.value) gsap.set(content.value, { clearProps: 'opacity,filter,transform,borderRadius,width,height,minWidth,minHeight' })
 }
 function close(restore = false, immediate = false) {
   if (!opened.value || closing.value) return
@@ -47,26 +57,35 @@ function close(restore = false, immediate = false) {
   const origin = trigger.value.getBoundingClientRect()
   const current = panel.value.getBoundingClientRect()
   const style = getComputedStyle(trigger.value)
+  const bounds = content.value.getBoundingClientRect()
+  const duration = m3Duration.collapseMedium
+  gsap.set(panel.value, {
+    x: 0,
+    y: 0,
+    scale: 1,
+    left: current.left,
+    top: current.top,
+    width: current.width,
+    height: current.height,
+  })
+  // El contenido conserva sus dimensiones reales mientras la superficie se recorta.
+  gsap.set(content.value, {
+    width: bounds.width,
+    height: bounds.height,
+    minWidth: bounds.width,
+    minHeight: bounds.height,
+    transformOrigin: '0 0',
+  })
   timeline = gsap.timeline()
   timeline.to(panel.value, {
     left: origin.left, top: origin.top, width: origin.width, height: origin.height,
     borderRadius: style.borderRadius, backgroundColor: style.backgroundColor,
-    duration: 0.5, ease: popoverEase,
+    duration, ease: standardEase,
   }, 0)
-  // El texto mantiene su tamaño; la superficie es la que cambia de forma.
-  const bounds = content.value.getBoundingClientRect()
-  gsap.set(content.value, { width: bounds.width, height: bounds.height, transformOrigin: '0 0' })
-  timeline.to(content.value, {
-    x: origin.left - current.left, y: origin.top - current.top,
-    scaleX: origin.width / Math.max(1, bounds.width),
-    scaleY: origin.height / Math.max(1, bounds.height),
-    duration: 2, ease: popoverEase,
-  }, 0)
-  timeline.to(content.value, { opacity: 0, borderRadius: '400px', duration: 0.5, ease: fadeEase }, 0)
-  timeline.to(content.value, { filter: 'blur(32px)', duration: 0.5, ease: blurEase }, 0)
-  // La cola geométrica ya es invisible a los 500 ms; libera la capa en ese punto.
-  timeline.call(finishClose, [], 0.5)
-  timeline.to(trigger.value, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.2)
+  timeline.to(content.value, { opacity: 0, filter: 'blur(6px)', duration: 0.15, ease: standardAccelerate }, 0)
+  timeline.to(panel.value, { opacity: 0, duration: 0.1, ease: standardAccelerate }, duration - 0.1)
+  timeline.to(trigger.value, { opacity: 1, duration: 0.12, ease: standardDecelerate }, duration - 0.12)
+  timeline.call(finishClose, [], duration)
 }
 function position() {
   const box = trigger.value.getBoundingClientRect()
@@ -104,19 +123,19 @@ async function open() {
   panel.value.focus({ preventScroll: true })
   if (reduced()) { trigger.value.style.opacity = '0'; return }
   const style = getComputedStyle(trigger.value)
+  const duration = m3Duration.expandMedium
   timeline = gsap.timeline()
   timeline.fromTo(panel.value, {
     left: target.box.left, top: target.box.top, width: target.box.width, height: target.box.height,
     borderRadius: style.borderRadius, backgroundColor: style.backgroundColor,
   }, {
     left: target.left, top: target.top, width: target.width, height: target.height,
-    backgroundColor: destinationColor, duration: 0.7, ease: popoverEase,
+    borderRadius: '32px', backgroundColor: destinationColor, duration, ease: emphasizedEase,
   }, 0)
-  timeline.to(panel.value, { borderRadius: '32px', duration: 0.3, ease: popoverEase }, 0)
   timeline.fromTo(content.value, {
-    y: target.box.top - target.top, opacity: 0, filter: 'blur(8px)',
-  }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.7, ease: popoverEase }, 0)
-  timeline.to(trigger.value, { opacity: 0, duration: 0.08 }, 0)
+    y: (target.box.top - target.top) * 0.25, opacity: 0, filter: 'blur(6px)',
+  }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: duration - 0.06, ease: emphasizedDecelerate }, 0.06)
+  timeline.to(trigger.value, { opacity: 0, duration: 0.08, ease: standardAccelerate }, 0)
 }
 function reveal() { panel.value?.querySelector(`[id="${id}-option-${cursor.value}"]`)?.scrollIntoView({ block: 'nearest' }) }
 function choose(index) {
@@ -186,9 +205,9 @@ onBeforeUnmount(() => {
       <svg width="24" height="24" viewBox="0 -960 960 960" aria-hidden="true"><path d="M459-381 314-526q-3-3-4.5-6.5T308-540q0-8 5.5-14t14.5-6h304q9 0 14.5 6t5.5 14q0 2-6 14L501-381q-5 5-10 7t-11 2q-6 0-11-2t-10-7Z" /></svg>
     </button>
     <select ref="native" class="finance-select__native" :value="modelValue" :required="required" tabindex="-1" aria-hidden="true" @vue:updated="sync" @invalid.prevent="trigger.focus(); open()"><slot /></select>
-    <div :id="`${id}-list`" ref="panel" class="finance-select__list" :class="{ 'is-closing': closing }" popover="manual" tabindex="-1" role="listbox" :aria-labelledby="`${id}-trigger`" data-no-drag @keydown="keyboard" @click.self="close()">
+    <div :id="`${id}-list`" ref="panel" class="finance-select__list" :class="{ 'is-closing': closing }" popover="manual" tabindex="-1" role="listbox" :aria-labelledby="`${id}-trigger`" @keydown="keyboard" @click.self="close()" @pointerdown.stop="drag.start" @pointermove.stop="drag.move" @pointerup.stop="drag.end" @pointercancel.stop="drag.cancel" @lostpointercapture.stop="drag.cancel">
       <div ref="content" class="finance-select__content">
-      <div v-for="(option, index) in options" :id="`${id}-option-${index}`" :key="option.value" class="finance-select__option" :class="{ 'is-pointed': cursor === index }" role="option" :aria-selected="option.value === String(modelValue ?? '')" :aria-disabled="option.disabled || undefined" @pointermove="!option.disabled && (cursor = index)" @pointerdown.prevent @click.stop.prevent="choose(index)"><span class="finance-select__label">{{ option.label }}</span></div>
+      <div v-for="(option, index) in options" :id="`${id}-option-${index}`" :key="option.value" class="finance-select__option" :class="{ 'is-pointed': cursor === index }" role="option" :aria-selected="option.value === String(modelValue ?? '')" :aria-disabled="option.disabled || undefined" @pointermove="$event.pointerType === 'mouse' && !option.disabled && (cursor = index)" @pointerdown.prevent @click.stop.prevent="choose(index)"><span class="finance-select__label">{{ option.label }}</span></div>
       <p v-if="!options.length" class="finance-select__empty">No hay opciones</p>
       </div>
     </div>
