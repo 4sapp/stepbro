@@ -7,11 +7,17 @@ services:
     dockerfilePath: ./Dockerfile.render
     dockerContext: .
     healthCheckPath: /up
+    domains:
+      - money.soulhem.online
     envVars:
       - key: APP_NAME
         value: sb Money
       - key: APP_ENV
         value: production
+      - key: APP_URL
+        value: https://money.soulhem.online
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: money.soulhem.online,soulhem-money.onrender.com
       - key: APP_DEBUG
         value: 'false'
       - key: APP_KEY_BASE64
